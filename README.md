@@ -122,7 +122,7 @@ cp .env.example .env
 
 pnpm db:generate
 pnpm db:migrate
-pnpm db:seed      # 可选：插一个示例题库（12 道题，覆盖 4 种题型）
+pnpm db:seed      # 可选：插 3 个示例题库共 60 题（FSRS / 中国地理 / TypeScript），覆盖 4 种题型
 pnpm dev          # → http://localhost:3000
 ```
 
@@ -351,6 +351,7 @@ prisma/
 | `pnpm start` | 启动生产服务器 |
 | `pnpm lint` | ESLint |
 | `pnpm typecheck` | TypeScript 类型检查（`tsc --noEmit`） |
+| `pnpm test:api` | API 烟雾测试（需先启动 `pnpm dev` + 数据库） |
 | `pnpm db:generate` | 生成 Prisma 客户端 |
 | `pnpm db:migrate` | 跑数据库迁移（开发） |
 | `pnpm db:deploy` | 部署迁移（生产） |
@@ -369,12 +370,21 @@ prisma/
 - [x] 错题漂流瓶 + 航海日志 + 航迹分析
 - [x] 深海 / 羊皮纸 双主题
 
-### V1.1 — 打磨
+### V1.1 — 打磨（已完成）
+
+- [x] 首次进入欢迎引导卡（localStorage 标记，可关闭）+ 题库舰队卡片升级（描述 / 标签 / 进度条）
+- [x] 完成报告升级为学习画像：画像标签 + 题型掌握度 + FSRS 评分分布 + 薄弱知识点 TOP3 + 漏选提示 + 规则化建议
+- [x] 种子题库扩容：12 题 → 60 题，覆盖 FSRS 概念 / 中国地理 / TypeScript 三类
+- [x] 错题本逻辑修复：AGAIN 评分也入瓶（原先只有 FSRS lapse 入瓶，NEW/LEARNING 卡答错被漏掉）
+- [x] LOGO 嵌入导航品牌区，移动端顶栏同步
+
+### V1.2 — 持续打磨
 
 - [ ] 工坊里的题目内联编辑 UI
 - [ ] 每库 FSRS 参数调优 UI
 - [ ] CSV / Anki 包导出
 - [ ] 分析页连续天数热力图
+- [ ] 断点续答（中途退出后回到上次位置）
 
 ### V2 — AI 智能体
 

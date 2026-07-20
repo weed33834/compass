@@ -29,7 +29,13 @@ export async function GET(request: NextRequest) {
 
   const where = {
     userId: auth.userId,
-    lapses: { gt: 0 },
+    // 错题本 = 任意一次 AGAIN 评分（lastErrorAt 非空）或 FSRS lapse（lapses > 0）
+    // - AGAIN 覆盖 NEW/LEARNING 卡答错的场景（FSRS 不计 lapse 但用户确实答错）
+    // - lapses > 0 覆盖 REVIEW 卡失败回到 RELEARNING 的场景
+    OR: [
+      { lapses: { gt: 0 } },
+      { lastErrorAt: { not: null } },
+    ],
     isBuried: false,
     isSuspended: false,
     question: { isDisabled: false },

@@ -278,52 +278,9 @@ function StudyContent() {
     );
   }
 
-  // 完成报告
+  // 完成报告（学习画像）
   if (phase === "completed") {
-    const correct = history.filter((h) => h.result.isCorrect).length;
-    const accuracy = history.length > 0 ? Math.round((correct / history.length) * 100) : 0;
-    return (
-      <div className="mx-auto max-w-2xl px-6 py-12">
-        <div className="rounded-2xl border border-brass/30 bg-abyss-50/40 p-8 text-center">
-          <CheckCircle2 className="mx-auto h-14 w-14 text-f-emerald" />
-          <h2 className="mt-6 font-serif text-3xl text-ivory">本轮已完成</h2>
-          <p className="mt-2 font-sans text-sm text-starlight">
-            共答 {history.length} 题 · 正确 {correct} 题 · 正确率 {accuracy}%
-          </p>
-          <div className="mt-8 grid grid-cols-3 gap-4 text-center">
-            <div className="rounded-xl border border-starlight/15 bg-abyss-700/40 p-4">
-              <p className="font-serif text-2xl text-brass">{history.length}</p>
-              <p className="font-sans text-xs text-starlight">已答</p>
-            </div>
-            <div className="rounded-xl border border-starlight/15 bg-abyss-700/40 p-4">
-              <p className="font-serif text-2xl text-f-emerald">{correct}</p>
-              <p className="font-sans text-xs text-starlight">答对</p>
-            </div>
-            <div className="rounded-xl border border-starlight/15 bg-abyss-700/40 p-4">
-              <p className="font-serif text-2xl text-f-coral2">{history.length - correct}</p>
-              <p className="font-sans text-xs text-starlight">答错</p>
-            </div>
-          </div>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Button onClick={loadQueue}>
-              <RotateCcw className="h-4 w-4" /> 再来一轮
-            </Button>
-            <Link
-              href="/compass"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-starlight/40 px-5 text-sm font-medium text-ivory transition-colors hover:bg-brass/10"
-            >
-              返回罗盘
-            </Link>
-            <Link
-              href="/wrongbook"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-starlight/40 px-5 text-sm font-medium text-ivory transition-colors hover:bg-brass/10"
-            >
-              错题漂流瓶
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return <CompletionReport history={history} mode={mode} onRetry={loadQueue} />;
   }
 
   // 空队列
@@ -535,4 +492,272 @@ function isAnswerFilled(type: string, value: unknown): boolean {
     return value.some((v) => typeof v === "string" && v.trim().length > 0);
   }
   return false;
+}
+
+// ============================================================
+// 完成报告：学习画像
+// 显示总分 + 题型分布 + 薄弱知识点 TOP3 + 评分分布 + 下一步建议
+// ============================================================
+function CompletionReport({
+  history,
+  mode,
+  onRetry,
+}: {
+  history: Array<{ item: QueueItem; result: SubmitResult; finalRating: Rating }>;
+  mode: string;
+  onRetry: () => void;
+}) {
+  const total = history.length;
+  const correct = history.filter((h) => h.result.isCorrect).length;
+  const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const wrongItems = history.filter((h) => !h.result.isCorrect);
+  const partialItems = history.filter((h) => h.result.partialScore > 0 && h.result.partialScore < 1);
+
+  // 题型分布
+  const typeStats: Record<string, { total: number; correct: number }> = {};
+  for (const h of history) {
+    const t = h.item.type;
+    if (!typeStats[t]) typeStats[t] = { total: 0, correct: 0 };
+    typeStats[t].total++;
+    if (h.result.isCorrect) typeStats[t].correct++;
+  }
+
+  // 薄弱知识点 TOP3（错题涉及的知识点，按出现频次降序）
+  const wrongKpCount: Record<string, number> = {};
+  for (const h of wrongItems) {
+    for (const kp of h.result.knowledgePoints) {
+      wrongKpCount[kp] = (wrongKpCount[kp] ?? 0) + 1;
+    }
+  }
+  const weakKps = Object.entries(wrongKpCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  // 评分分布
+  const ratingCount: Record<Rating, number> = { AGAIN: 0, HARD: 0, GOOD: 0, EASY: 0 };
+  for (const h of history) ratingCount[h.finalRating]++;
+
+  // 学习画像标签（基于正确率）
+  const portraitTags: string[] = [];
+  if (accuracy >= 90) portraitTags.push("记忆稳固", "高效回忆");
+  else if (accuracy >= 70) portraitTags.push("稳步掌握", "继续巩固");
+  else if (accuracy >= 50) portraitTags.push("基础待固", "需要复盘");
+  else portraitTags.push("起步阶段", "重点关注");
+
+  if (ratingCount.EASY + ratingCount.GOOD > ratingCount.AGAIN + ratingCount.HARD) {
+    portraitTags.push("自信作答");
+  } else if (ratingCount.AGAIN > 2) {
+    portraitTags.push("需要重练");
+  }
+
+  // 下一步建议
+  const suggestions: string[] = [];
+  if (wrongItems.length > 0) {
+    suggestions.push(`错题已自动进入错题漂流瓶，建议 24 小时内重做 ${wrongItems.length} 题`);
+  }
+  if (weakKps.length > 0) {
+    suggestions.push(`薄弱知识点：${weakKps.map(([kp, n]) => `${kp}(${n}次)`).join("、")}`);
+  }
+  if (ratingCount.AGAIN > 0) {
+    suggestions.push(`有 ${ratingCount.AGAIN} 题标记为"重来"，FSRS 将在 1 分钟内重新出现`);
+  }
+  if (suggestions.length === 0) {
+    suggestions.push("本轮全对，FSRS 会把这些卡的下次复习自动延后");
+  }
+
+  const ratingColors: Record<Rating, string> = {
+    AGAIN: "bg-f-coral2",
+    HARD: "bg-f-amber",
+    GOOD: "bg-f-azure",
+    EASY: "bg-f-emerald",
+  };
+  const ratingLabels: Record<Rating, string> = { AGAIN: "重来", HARD: "困难", GOOD: "良好", EASY: "简单" };
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
+      {/* 主标题卡 */}
+      <div className="overflow-hidden rounded-2xl border border-brass/30 bg-gradient-to-br from-brass/10 via-abyss-50/40 to-abyss-700/40 p-8 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-f-emerald/40 bg-f-emerald/10">
+          <CheckCircle2 className="h-9 w-9 text-f-emerald" />
+        </div>
+        <h2 className="mt-5 font-serif text-3xl text-ivory">
+          {mode === "WRONG_REDO" ? "错题重做完成" : "本轮答题完成"}
+        </h2>
+        <p className="mt-2 font-sans text-sm text-starlight">
+          共答 {total} 题 · 正确 {correct} 题 · 正确率{" "}
+          <span className={accuracy >= 70 ? "text-f-emerald" : accuracy >= 50 ? "text-f-amber" : "text-f-coral2"}>
+            {accuracy}%
+          </span>
+        </p>
+
+        {/* 画像标签 */}
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          {portraitTags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-brass/40 bg-brass/10 px-3 py-1 font-sans text-xs text-brass"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        {/* 核心数据三宫格 */}
+        <div className="mt-6 grid grid-cols-3 gap-3">
+          <div className="rounded-xl border border-starlight/15 bg-abyss-700/40 p-4">
+            <p className="font-serif text-2xl text-brass">{total}</p>
+            <p className="mt-1 font-sans text-xs text-starlight">已答</p>
+          </div>
+          <div className="rounded-xl border border-starlight/15 bg-abyss-700/40 p-4">
+            <p className="font-serif text-2xl text-f-emerald">{correct}</p>
+            <p className="mt-1 font-sans text-xs text-starlight">答对</p>
+          </div>
+          <div className="rounded-xl border border-starlight/15 bg-abyss-700/40 p-4">
+            <p className="font-serif text-2xl text-f-coral2">{total - correct}</p>
+            <p className="mt-1 font-sans text-xs text-starlight">答错</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 题型掌握度 */}
+      {Object.keys(typeStats).length > 0 && (
+        <div className="mt-4 rounded-2xl border border-starlight/15 bg-abyss-50/30 p-6">
+          <h3 className="mb-4 font-serif text-base text-ivory">题型掌握度</h3>
+          <div className="space-y-3">
+            {Object.entries(typeStats).map(([type, s]) => {
+              const typeLabel = QUESTION_TYPE_LABELS[type as keyof typeof QUESTION_TYPE_LABELS] ?? type;
+              const typeAcc = s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0;
+              return (
+                <div key={type}>
+                  <div className="mb-1 flex items-center justify-between font-sans text-xs">
+                    <span className="text-ivory">{typeLabel}</span>
+                    <span className="font-mono text-starlight/70">
+                      {s.correct}/{s.total} · {typeAcc}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-abyss-700/60">
+                    <div
+                      className={`h-full transition-all ${
+                        typeAcc >= 70 ? "bg-f-emerald" : typeAcc >= 50 ? "bg-f-amber" : "bg-f-coral2"
+                      }`}
+                      style={{ width: `${typeAcc}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 评分分布 + 薄弱知识点 */}
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        {/* 评分分布 */}
+        <div className="rounded-2xl border border-starlight/15 bg-abyss-50/30 p-6">
+          <h3 className="mb-4 font-serif text-base text-ivory">FSRS 评分分布</h3>
+          <div className="space-y-2">
+            {(Object.keys(ratingCount) as Rating[]).map((r) => {
+              const count = ratingCount[r];
+              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+              return (
+                <div key={r} className="flex items-center gap-3">
+                  <span className="w-12 font-sans text-xs text-starlight">{ratingLabels[r]}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-abyss-700/60">
+                    <div
+                      className={`h-full ${ratingColors[r]} transition-all`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="w-8 text-right font-mono text-xs text-ivory">{count}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 薄弱知识点 */}
+        <div className="rounded-2xl border border-starlight/15 bg-abyss-50/30 p-6">
+          <h3 className="mb-4 font-serif text-base text-ivory">
+            薄弱知识点 {weakKps.length > 0 && <span className="font-sans text-xs text-coral">TOP {weakKps.length}</span>}
+          </h3>
+          {weakKps.length === 0 ? (
+            <div className="flex h-20 items-center justify-center text-center">
+              <div>
+                <CheckCircle2 className="mx-auto h-6 w-6 text-f-emerald/60" />
+                <p className="mt-1 font-sans text-xs text-starlight">本轮无错题，继续保持</p>
+              </div>
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {weakKps.map(([kp, n], idx) => (
+                <li
+                  key={kp}
+                  className="flex items-center justify-between rounded-lg border border-coral/20 bg-coral/5 px-3 py-2"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-coral/20 font-mono text-[10px] text-coral">
+                      {idx + 1}
+                    </span>
+                    <span className="truncate font-sans text-xs text-ivory">{kp}</span>
+                  </div>
+                  <span className="ml-2 shrink-0 font-mono text-[10px] text-coral">{n} 次错</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* 漏选提示 */}
+      {partialItems.length > 0 && (
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-f-amber/30 bg-f-amber/5 px-5 py-3">
+          <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-f-amber" />
+          <p className="font-sans text-xs leading-relaxed text-ivory/90">
+            有 {partialItems.length} 题漏选得部分分。多选题的判分规则：完全对 1.0，漏选 ={" "}
+            <span className="font-mono text-f-amber">0.5 + ratio*0.5</span>（上限 0.99），错选 0 分。
+          </p>
+        </div>
+      )}
+
+      {/* AI 建议区（实际是基于规则的画像建议） */}
+      <div className="mt-4 rounded-2xl border border-brass/30 bg-brass/5 p-6">
+        <h3 className="mb-3 flex items-center gap-2 font-serif text-base text-brass">
+          <Anchor className="h-4 w-4" /> 下一步建议
+        </h3>
+        <ul className="space-y-2">
+          {suggestions.map((s, idx) => (
+            <li key={idx} className="flex items-start gap-2 font-sans text-xs leading-relaxed text-ivory/90">
+              <span className="mt-0.5 text-brass">·</span>
+              <span>{s}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* 操作按钮 */}
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <Button onClick={onRetry}>
+          <RotateCcw className="h-4 w-4" /> 再来一轮
+        </Button>
+        <Link
+          href="/wrongbook"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-coral/40 bg-coral/10 px-5 text-sm font-medium text-coral transition-colors hover:bg-coral/20"
+        >
+          <Anchor className="h-4 w-4" /> 错题漂流瓶 {wrongItems.length > 0 && `(${wrongItems.length})`}
+        </Link>
+        <Link
+          href="/analytics"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-starlight/40 px-5 text-sm font-medium text-ivory transition-colors hover:bg-brass/10"
+        >
+          查看航迹分析
+        </Link>
+        <Link
+          href="/compass"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-starlight/40 px-5 text-sm font-medium text-ivory transition-colors hover:bg-brass/10"
+        >
+          返回罗盘
+        </Link>
+      </div>
+    </div>
+  );
 }

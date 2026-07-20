@@ -14,6 +14,7 @@ import {
   Plus,
   LogOut,
 } from "lucide-react";
+// 注：Compass 图标保留导入用于 navItems，但 LOGO 用 /logo.svg
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/components/i18n/useTranslation";
 import { signOut } from "next-auth/react";
@@ -52,12 +53,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* 桌面端左侧固定导航栏（240px） */}
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-60 flex-col border-r border-brass/15 bg-abyss-600/80 backdrop-blur-md md:flex">
         {/* 品牌标识 */}
-        <div className="flex h-16 items-center gap-2 border-b border-brass/10 px-6">
-          <Compass className="h-6 w-6 text-brass" />
-          <span className="font-serif text-xl font-semibold text-ivory">
-            Compass
-          </span>
-        </div>
+        <Link href="/compass" className="flex h-16 items-center gap-2.5 border-b border-brass/10 px-6 transition-colors hover:bg-brass/5">
+          <img src="/logo.svg" alt="" className="h-8 w-8" />
+          <div className="flex flex-col leading-none">
+            <span className="font-serif text-xl font-semibold text-ivory">Compass</span>
+            <span className="mt-0.5 font-sans text-[10px] text-brass/70">刷题罗盘</span>
+          </div>
+        </Link>
         {/* 导航菜单 */}
         <nav className="flex flex-1 flex-col gap-1 p-3">
           {navItems.map((item) => {
@@ -98,8 +100,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="md:pl-60">
         {/* 顶部用户信息栏 */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-brass/10 bg-abyss/80 px-4 backdrop-blur-md md:px-8">
-          <div className="flex items-center gap-3">
-            <Compass className="h-5 w-5 text-brass md:hidden" />
+          <div className="flex items-center gap-2">
+            <img src="/logo.svg" alt="" className="h-7 w-7 md:hidden" />
             <span className="font-serif text-lg font-semibold text-ivory md:hidden">
               Compass
             </span>

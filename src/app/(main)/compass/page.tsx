@@ -4,9 +4,10 @@
 // 路由：/compass
 //
 // 内容：
-//   1. 今日待复习数 + 连续天数 + 题库数
-//   2. 题库舰队网格（点击卡片 → /study?bankId=）
-//   3. 快速入口：开始今日答题 / 错题重做
+//   1. 首次进入欢迎引导卡（localStorage 标记，可关闭）
+//   2. 今日待复习数 + 连续天数 + 题库数
+//   3. 题库舰队网格（点击卡片 → /study?bankId=）
+//   4. 快速入口：开始今日答题 / 错题重做
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -19,6 +20,10 @@ import {
   ArrowRight,
   Loader2,
   AlertTriangle,
+  X,
+  Sparkles,
+  Clock,
+  Target,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/Button";
@@ -56,11 +61,14 @@ const COVER_GRADIENTS: Record<string, string> = {
   starlight: "from-starlight/20 to-starlight-dark/5 border-starlight/30",
 };
 
+const ONBOARDING_KEY = "compass:onboarding-v1.1-dismissed";
+
 export default function CompassPage() {
   const [banks, setBanks] = useState<BankListItem[]>([]);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -87,12 +95,89 @@ export default function CompassPage() {
 
   useEffect(() => {
     load();
+    // 首次进入显示 onboarding
+    try {
+      const dismissed = localStorage.getItem(ONBOARDING_KEY);
+      if (!dismissed) setShowOnboarding(true);
+    } catch {
+      // localStorage 不可用时静默
+    }
   }, [load]);
 
+  const dismissOnboarding = () => {
+    setShowOnboarding(false);
+    try {
+      localStorage.setItem(ONBOARDING_KEY, "1");
+    } catch {
+      // 静默
+    }
+  };
+
   const totalDue = banks.reduce((s, b) => s + b.dueCount, 0);
+  const totalQuestions = banks.reduce((s, b) => s + b.questionCount, 0);
 
   return (
     <div className="space-y-6">
+      {/* 首次进入欢迎卡 */}
+      {showOnboarding && (
+        <div className="relative overflow-hidden rounded-2xl border border-brass/40 bg-gradient-to-br from-brass/10 via-abyss-50/40 to-abyss-700/40 p-6 sm:p-8">
+          <button
+            type="button"
+            onClick={dismissOnboarding}
+            aria-label="关闭引导"
+            className="absolute right-4 top-4 rounded-full p-1 text-starlight/60 transition-colors hover:bg-white/5 hover:text-ivory"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-brass/40 bg-brass/10">
+              <Sparkles className="h-7 w-7 text-brass" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-serif text-xl text-ivory">欢迎登船，航海者</h2>
+              <p className="mt-1.5 font-sans text-sm leading-relaxed text-starlight">
+                Compass 是基于 FSRS-6 算法的间隔重复刷题工具。导入你的题库，按 1/2/3/4 给回忆打分，
+                算法会自动决定每张卡什么时候回来——答得越准，间隔越长。
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3 text-xs">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-starlight/20 bg-abyss-700/50 px-3 py-1 text-starlight">
+                  <Clock className="h-3 w-3 text-brass" /> 4 题型 · 4 键评分
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-starlight/20 bg-abyss-700/50 px-3 py-1 text-starlight">
+                  <Layers className="h-3 w-3 text-brass" /> Markdown / Excel / Word 导入
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-starlight/20 bg-abyss-700/50 px-3 py-1 text-starlight">
+                  <Target className="h-3 w-3 text-brass" /> 学习画像 + 薄弱知识点
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link
+              href="/study?mode=LEARN"
+              onClick={dismissOnboarding}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-brass bg-brass/15 px-4 text-sm font-medium text-brass transition-colors hover:bg-brass/25"
+            >
+              <Ship className="h-4 w-4" /> 立即开始答题
+            </Link>
+            <Link
+              href="/workshop"
+              onClick={dismissOnboarding}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-starlight/30 px-4 text-sm font-medium text-ivory transition-colors hover:bg-brass/10"
+            >
+              <Layers className="h-4 w-4" /> 创建/导入题库
+            </Link>
+            <button
+              type="button"
+              onClick={dismissOnboarding}
+              className="inline-flex h-9 items-center px-4 text-sm font-medium text-starlight/70 transition-colors hover:text-ivory"
+            >
+              稍后再说
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 顶部欢迎 + 快速操作 */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -104,6 +189,12 @@ export default function CompassPage() {
                 {" · "}
                 <Flame className="inline h-3.5 w-3.5 text-coral" />
                 连续 <span className="font-mono text-coral">{overview.streak}</span> 天
+              </>
+            )}
+            {totalQuestions > 0 && (
+              <>
+                {" · "}
+                共 <span className="font-mono text-ivory">{totalQuestions}</span> 题
               </>
             )}
           </p>
@@ -209,7 +300,7 @@ function StatCard({
     starlight: "text-starlight",
   };
   return (
-    <div className="rounded-xl border border-starlight/15 bg-abyss-50/30 p-4">
+    <div className="rounded-xl border border-starlight/15 bg-abyss-50/30 p-4 transition-colors hover:border-brass/30">
       <div className="flex items-center justify-between">
         <span className="font-sans text-xs text-starlight/70">{label}</span>
         <span className={colorMap[color]}>{icon}</span>
@@ -221,10 +312,13 @@ function StatCard({
 
 function BankMiniCard({ bank }: { bank: BankListItem }) {
   const gradient = COVER_GRADIENTS[bank.coverColor] ?? COVER_GRADIENTS.brass;
+  const progress = bank.questionCount > 0
+    ? Math.min(100, Math.round(((bank.questionCount - bank.dueCount) / bank.questionCount) * 100))
+    : 0;
   return (
     <Link
       href={`/study?bankId=${bank.id}&mode=LEARN`}
-      className={`group block rounded-xl border bg-gradient-to-br p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg ${gradient}`}
+      className={`group block rounded-xl border bg-gradient-to-br p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brass/10 ${gradient}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -244,9 +338,37 @@ function BankMiniCard({ bank }: { bank: BankListItem }) {
         )}
       </div>
 
-      <div className="mt-4 flex items-center justify-between font-mono text-xs text-starlight/70">
-        <span>共 {bank.questionCount} 题</span>
-        <ArrowRight className="h-3 w-3 opacity-50 transition-opacity group-hover:opacity-100" />
+      {bank.description && (
+        <p className="mt-2 line-clamp-2 font-sans text-xs leading-relaxed text-starlight/80">
+          {bank.description}
+        </p>
+      )}
+
+      {bank.tags.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1">
+          {bank.tags.slice(0, 3).map((tag) => (
+            <span
+              key={tag}
+              className="rounded border border-starlight/20 bg-abyss-700/30 px-1.5 py-0.5 font-mono text-[10px] text-starlight/70"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* 进度条 */}
+      <div className="mt-4">
+        <div className="mb-1 flex items-center justify-between font-mono text-[10px] text-starlight/60">
+          <span>共 {bank.questionCount} 题</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="h-1 w-full overflow-hidden rounded-full bg-abyss-700/60">
+          <div
+            className="h-full bg-gradient-to-r from-brass-dark to-brass transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       </div>
     </Link>
   );

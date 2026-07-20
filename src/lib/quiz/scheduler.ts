@@ -40,10 +40,16 @@ export async function buildStudyQueue(opts: {
     ...(bankId ? { bankId } : {}),
   };
 
-  // 错题重做：只取 lapses > 0 的卡
+  // 错题重做：取 lapses > 0 或 lastErrorAt 非空的卡（即任意一次答错）
   if (mode === "WRONG_REDO") {
     const items = await prisma.reviewItem.findMany({
-      where: { ...baseWhere, lapses: { gt: 0 } },
+      where: {
+        ...baseWhere,
+        OR: [
+          { lapses: { gt: 0 } },
+          { lastErrorAt: { not: null } },
+        ],
+      },
       include: { question: true, bank: true },
       orderBy: [{ lastErrorAt: "desc" }, { updatedAt: "desc" }],
       take: limit,

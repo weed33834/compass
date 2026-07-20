@@ -56,7 +56,14 @@ export async function GET(request: NextRequest) {
       _count: true,
     }),
     prisma.reviewItem.count({
-      where: { userId: auth.userId, ...(bankId ? { bankId } : {}), lapses: { gt: 0 } },
+      where: {
+        userId: auth.userId,
+        ...(bankId ? { bankId } : {}),
+        OR: [
+          { lapses: { gt: 0 } },
+          { lastErrorAt: { not: null } },
+        ],
+      },
     }),
     prisma.reviewItem.count({
       where: {

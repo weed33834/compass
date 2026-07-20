@@ -43,6 +43,15 @@ const RATING_MAP: Record<"AGAIN" | "HARD" | "GOOD" | "EASY", Grade> = {
   EASY: Rating.Easy,
 };
 
+// ts-fsrs 的 Rating 是数字（1=Again 2=Hard 3=Good 4=Easy）
+// Prisma 的 Rating 是字符串 enum，需要反向映射
+const GRADE_TO_PRISMA_RATING: Record<number, PrismaRating> = {
+  1: "AGAIN",
+  2: "HARD",
+  3: "GOOD",
+  4: "EASY",
+};
+
 const STATE_TO_PRISMA: Record<number, CardState> = {
   0: "NEW",
   1: "LEARNING",
@@ -99,6 +108,9 @@ export async function POST(request: NextRequest) {
   const updated = await prisma.$transaction(async (tx) => {
     // 1. ReviewItem 更新（FSRS 新状态）
     const isLapse = newCard.lapses > reviewItem.lapses;
+    // AGAIN 表示"完全不会"——无论 FSRS 是否计 lapse，都记入错题本
+    // （NEW/LEARNING 卡 AGAIN 不增加 lapses，但用户确实答错了）
+    const isError = grade === Rating.Again;
     const item = await tx.reviewItem.update({
       where: { id: reviewItem.id },
       data: {
@@ -111,8 +123,8 @@ export async function POST(request: NextRequest) {
         elapsedDays: newCard.elapsed_days,
         dueAt: newCard.due,
         lastReviewAt: now,
-        // 错题本字段：lapse 时记录错时戳
-        ...(isLapse
+        // 错题本字段：lapse 或 AGAIN 时记录错时戳
+        ...(isLapse || isError
           ? {
               firstErrorAt: reviewItem.firstErrorAt ?? now,
               lastErrorAt: now,
@@ -126,7 +138,7 @@ export async function POST(request: NextRequest) {
       data: {
         reviewItemId: reviewItem.id,
         userId: auth.userId,
-        rating: grade as unknown as PrismaRating,
+        rating: GRADE_TO_PRISMA_RATING[grade] ?? "AGAIN",
         state: reviewItem.state, // 评分前的 state
         prevStability: reviewItem.stability,
         prevDifficulty: reviewItem.difficulty,
