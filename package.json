@@ -1,0 +1,90 @@
+{
+  "name": "compass",
+  "version": "1.0.0",
+  "private": false,
+  "description": "Compass · 自托管的间隔重复刷题工具，以航海仪器为美学隐喻，基于 FSRS-6 算法",
+  "license": "MIT",
+  "author": "Compass Contributors",
+  "homepage": "https://gitcode.com/badhope/compass#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://gitcode.com/badhope/compass.git"
+  },
+  "bugs": {
+    "url": "https://gitcode.com/badhope/compass/issues"
+  },
+  "keywords": [
+    "compass",
+    "spaced-repetition",
+    "fsrs",
+    "fsrs-6",
+    "flashcard",
+    "quiz",
+    "study",
+    "education",
+    "self-hosted",
+    "self-hosting",
+    "anki-alternative",
+    "nextjs",
+    "prisma",
+    "postgresql",
+    "typescript",
+    "react",
+    "tailwindcss",
+    "pwa",
+    "open-source"
+  ],
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@prisma/client": "5.22.0",
+    "@radix-ui/react-dialog": "^1.1.19",
+    "@radix-ui/react-popover": "^1.1.19",
+    "bcryptjs": "^3.0.3",
+    "framer-motion": "^12.42.2",
+    "lucide-react": "^1.23.0",
+    "next": "16.2.10",
+    "next-auth": "^4.24.10",
+    "nodemailer": "^9.0.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "ts-fsrs": "^5.4.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.2",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^20.17.6",
+    "@types/nodemailer": "^8.0.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "16.2.10",
+    "mammoth": "^1.12.0",
+    "postcss": "^8.4.49",
+    "prisma": "^5.22.0",
+    "sharp": "^0.35.3",
+    "tailwindcss": "^4.3.2",
+    "tsx": "^4.23.0",
+    "typescript": "^5.9.3",
+    "xlsx": "^0.18.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@11.13.1+sha512.b2fc7683b8a6525414e7d13e1ba28caaddde96bf66ec540bfaeb7e702b81f3e0be4d1f295edf7f9fe0396740a8dce4509c582ddf79891f4543fea32d37645f25"
+}

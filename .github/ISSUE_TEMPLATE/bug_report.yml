@@ -1,0 +1,65 @@
+name: Bug Report
+description: Report a reproducible issue in Compass
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to file a bug report. Please fill out the sections below to help us diagnose and resolve the issue quickly.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear, concise description of what the bug is.
+      placeholder: "When I submit an answer in the study cabin, the 4-key rating bar does not appear and the console shows a 500 from /api/study/grade."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Ordered list of steps to trigger the bug.
+      placeholder: |
+        1. Log in and open /study?bankId=<bank-id>&mode=LEARN
+        2. Pick an option for the first question
+        3. Click "提交答案"
+        4. Watch the network panel
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen instead.
+      placeholder: "The grade endpoint should return 200 with previews for all 4 rating keys, and the rating bar should appear below the question card."
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Details about your setup.
+      value: |
+        - OS: [e.g. Windows 11, macOS 15, Ubuntu 24.04]
+        - Node.js version: [e.g. 20.15.0]
+        - pnpm version: [e.g. 9.12.0]
+        - PostgreSQL version: [e.g. 17.2]
+        - Browser: [e.g. Chrome 131, Firefox 134]
+        - Compass commit: [e.g. ea4f4e3]
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs
+      description: Browser console output, terminal logs, or stack traces. Use code blocks.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I have searched existing issues and confirmed this is not a duplicate.
+          required: true
+        - label: I am running the latest commit on the `main` branch.
+          required: true

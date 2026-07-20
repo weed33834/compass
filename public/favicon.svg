@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Compass 品牌 favicon：罗盘玫瑰 + 北指针 -->
+  <!-- 配色取自项目主题变量：abyss / ivory / brass / starlight -->
+  <defs>
+    <linearGradient id="ring" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c9a227"/>
+      <stop offset="1" stop-color="#a3851c"/>
+    </linearGradient>
+    <radialGradient id="dial" cx="0.5" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#f5f1e8"/>
+      <stop offset="1" stop-color="#e8e1cf"/>
+    </radialGradient>
+  </defs>
+  <!-- 外圈：黄铜环 + 深渊外描边 -->
+  <circle cx="32" cy="32" r="30" fill="url(#ring)" stroke="#0b1426" stroke-width="2"/>
+  <circle cx="32" cy="32" r="24" fill="url(#dial)"/>
+  <!-- 八方位刻度（主四向加粗，副四向细线） -->
+  <g stroke="#0b1426" stroke-width="1.5" stroke-linecap="round">
+    <line x1="32" y1="6" x2="32" y2="12"/>
+    <line x1="32" y1="52" x2="32" y2="58"/>
+    <line x1="6" y1="32" x2="12" y2="32"/>
+    <line x1="52" y1="32" x2="58" y2="32"/>
+  </g>
+  <g stroke="#a8b4c4" stroke-width="1" stroke-linecap="round">
+    <line x1="14.6" y1="14.6" x2="18.4" y2="18.4"/>
+    <line x1="45.6" y1="45.6" x2="49.4" y2="49.4"/>
+    <line x1="49.4" y1="14.6" x2="45.6" y2="18.4"/>
+    <line x1="14.6" y1="49.4" x2="18.4" y2="45.6"/>
+  </g>
+  <!-- 罗盘玫瑰：南北指针，黄铜为北、深渊为南 -->
+  <polygon points="32,10 26.5,32 32,30 37.5,32" fill="#c9a227" stroke="#0b1426" stroke-width="0.6" stroke-linejoin="round"/>
+  <polygon points="32,54 26.5,32 32,34 37.5,32" fill="#0b1426"/>
+  <!-- 东西指针（星光弱指针，区分主次） -->
+  <polygon points="10,32 32,26.5 30,32 32,37.5" fill="#a8b4c4" opacity="0.7"/>
+  <polygon points="54,32 32,26.5 34,32 32,37.5" fill="#a8b4c4" opacity="0.4"/>
+  <!-- 中心轴 -->
+  <circle cx="32" cy="32" r="3" fill="#0b1426"/>
+  <circle cx="32" cy="32" r="1.2" fill="#c9a227"/>
+  <!-- 北标记 N -->
+  <text x="32" y="20" text-anchor="middle" font-family="ui-serif, Georgia, serif" font-size="7" font-weight="700" fill="#0b1426">N</text>
+</svg>

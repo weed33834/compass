@@ -1,0 +1,268 @@
+@import "tailwindcss";
+
+@source "../../src/app";
+@source "../../src/components";
+@source "../../src/lib";
+
+@theme {
+  --font-serif: var(--font-serif), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-sans), system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, "Cascadia Code", "Consolas", "SF Mono", monospace;
+
+  --color-abyss: rgb(var(--color-abyss));
+  --color-abyss-50: rgb(var(--color-abyss-50));
+  --color-abyss-100: rgb(var(--color-abyss-100));
+  --color-abyss-200: rgb(var(--color-abyss-200));
+  --color-abyss-300: rgb(var(--color-abyss-300));
+  --color-abyss-400: rgb(var(--color-abyss-400));
+  --color-abyss-500: rgb(var(--color-abyss-500));
+  --color-abyss-600: rgb(var(--color-abyss-600));
+  --color-abyss-700: rgb(var(--color-abyss-700));
+  --color-abyss-800: rgb(var(--color-abyss-800));
+  --color-abyss-900: rgb(var(--color-abyss-900));
+  --color-ivory: rgb(var(--color-ivory));
+  --color-ivory-50: rgb(var(--color-ivory-50));
+  --color-ivory-100: rgb(var(--color-ivory-100));
+  --color-ivory-200: rgb(var(--color-ivory-200));
+  --color-ivory-300: rgb(var(--color-ivory-300));
+  --color-ivory-400: rgb(var(--color-ivory-400));
+  --color-brass: rgb(var(--color-brass));
+  --color-brass-light: rgb(var(--color-brass-light));
+  --color-brass-dark: rgb(var(--color-brass-dark));
+  --color-tide: rgb(var(--color-tide));
+  --color-tide-light: rgb(var(--color-tide-light));
+  --color-tide-dark: rgb(var(--color-tide-dark));
+  --color-coral: rgb(var(--color-coral));
+  --color-coral-light: rgb(var(--color-coral-light));
+  --color-coral-dark: rgb(var(--color-coral-dark));
+  --color-starlight: rgb(var(--color-starlight));
+  --color-starlight-light: rgb(var(--color-starlight-light));
+  --color-starlight-dark: rgb(var(--color-starlight-dark));
+  /* 反馈色板：4 键评分 / 对错高亮 */
+  --color-f-emerald: rgb(var(--color-f-emerald));
+  --color-f-azure: rgb(var(--color-f-azure));
+  --color-f-amber: rgb(var(--color-f-amber));
+  --color-f-coral2: rgb(var(--color-f-coral2));
+
+  --animate-spin-slow: spin 20s linear infinite;
+  --animate-compass-spin: compass-spin 60s linear infinite;
+  --animate-fade-in: fadeIn 0.6s ease-out forwards;
+  --animate-fade-in-up: fadeInUp 0.6s ease-out forwards;
+
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+}
+
+:root {
+  /* 深海航海仪器色板 —— 旧版无前缀 CSS 变量（部分直写样式仍引用，保留以兼容） */
+  --abyss: #0b1426;
+  --abyss-deep: #060b15;
+  --ivory: #f5f1e8;
+  --brass: #c9a227;
+  --brass-light: #e0bc3e;
+  --brass-dark: #a3851c;
+  --tide: #4a7c82;
+  --coral: #d97757;
+  --starlight: #a8b4c4;
+  --starlight-dim: #8b97a8;
+
+  /* 字体族 CSS 变量：使用系统原生字体，无需外部 CDN 加载 */
+  --font-serif: Georgia, "Times New Roman", serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Consolas", "SF Mono", monospace;
+
+  /* ===== 深海主题（默认）：tailwind 颜色变量，值为 "R G B" 空格分隔（不带 rgb()，由 tailwind 包裹） =====
+     这样 bg-abyss/80 等透明度写法经 rgb(var(--color-abyss) / <alpha-value>) 正确生效 */
+  --color-abyss: 11 20 38;          /* #0B1426 */
+  --color-abyss-50: 26 39 64;       /* #1a2740 */
+  --color-abyss-100: 21 32 58;      /* #15203a */
+  --color-abyss-200: 16 26 48;      /* #101a30 */
+  --color-abyss-300: 14 23 40;      /* #0e1728 */
+  --color-abyss-400: 12 21 34;      /* #0c1522 */
+  --color-abyss-500: 11 20 38;      /* #0B1426 */
+  --color-abyss-600: 8 15 29;       /* #080f1d */
+  --color-abyss-700: 6 11 21;       /* #060b15 */
+  --color-abyss-800: 4 7 16;        /* #040710 */
+  --color-abyss-900: 2 5 9;         /* #020509 */
+  --color-ivory: 245 241 232;       /* #F5F1E8 */
+  --color-ivory-50: 253 251 246;
+  --color-ivory-100: 245 241 232;
+  --color-ivory-200: 235 229 212;
+  --color-ivory-300: 221 212 189;
+  --color-ivory-400: 204 192 163;
+  --color-brass: 201 162 39;        /* #C9A227 */
+  --color-brass-light: 224 188 62;
+  --color-brass-dark: 163 133 28;
+  --color-tide: 74 124 130;
+  --color-tide-light: 106 156 162;
+  --color-tide-dark: 53 96 102;
+  --color-coral: 217 119 87;
+  --color-coral-light: 232 145 118;
+  --color-coral-dark: 184 93 61;
+  --color-starlight: 168 180 196;
+  --color-starlight-light: 196 205 217;
+  --color-starlight-dark: 139 151 168;
+  /* 反馈色板（深海主题）：4 个语义化的对错/难度色 */
+  --color-f-emerald: 16 185 129;   /* #10b981 简单 - 翡翠绿 */
+  --color-f-azure: 56 189 248;     /* #38bdf8 良好 - 天蓝 */
+  --color-f-amber: 245 158 11;     /* #f59e0b 困难 - 琥珀 */
+  --color-f-coral2: 239 68 68;     /* #ef4444 重来 - 珊瑚红 */
+}
+
+/* ===== 羊皮纸主题（浅色暖调）：覆盖关键变量
+   - abyss 在浅色主题里充当页面背景，故变浅（奶油）
+   - ivory 充当主文字，故变深（深棕）
+   - brass/tide/coral 加深以保证浅底对比度 */
+[data-theme="parchment"] {
+  --color-abyss: 245 241 232;       /* 页面背景：奶油 */
+  --color-abyss-50: 253 251 246;
+  --color-abyss-100: 245 241 232;
+  --color-abyss-200: 235 229 212;
+  --color-abyss-300: 225 218 197;
+  --color-abyss-400: 215 207 183;
+  --color-abyss-500: 245 241 232;
+  --color-abyss-600: 232 226 209;
+  --color-abyss-700: 220 213 193;
+  --color-abyss-800: 208 200 177;
+  --color-abyss-900: 196 188 163;
+  --color-ivory: 38 34 28;          /* 主文字：深棕 */
+  --color-ivory-50: 30 26 20;
+  --color-ivory-100: 38 34 28;
+  --color-ivory-200: 60 54 44;
+  --color-ivory-300: 90 82 68;
+  --color-ivory-400: 120 110 92;
+  --color-brass: 130 100 20;        /* 深黄铜，浅底高对比 */
+  --color-brass-light: 163 133 28;
+  --color-brass-dark: 100 76 14;
+  --color-tide: 53 96 102;
+  --color-tide-light: 74 124 130;
+  --color-tide-dark: 38 70 75;
+  --color-coral: 184 93 61;
+  --color-coral-light: 217 119 87;
+  --color-coral-dark: 150 70 44;
+  --color-starlight: 90 82 68;      /* 次要文字：棕灰 */
+  --color-starlight-light: 120 110 92;
+  --color-starlight-dark: 60 54 44;
+  /* 反馈色板：浅色主题略加深以保证对比度 */
+  --color-f-emerald: 5 150 105;
+  --color-f-azure: 14 165 233;
+  --color-f-amber: 217 119 6;
+  --color-f-coral2: 220 38 38;
+  /* 旧版无前缀变量同步覆盖（确保 SVG 图表等组件跟随浅色主题） */
+  --abyss: #f5f1e8;
+  --abyss-deep: #e8e2d1;
+  --ivory: #26221c;
+  --brass: #826414;
+  --brass-light: #a3851c;
+  --brass-dark: #64480e;
+  --tide: #356066;
+  --coral: #b85d3d;
+  --starlight: #5a5244;
+  --starlight-dim: #786e5c;
+}
+
+@layer base {
+  body {
+    @apply bg-abyss text-ivory font-sans antialiased;
+    /* 星图背景纹理：多层 radial-gradient 模拟深海星点 + 黄铜/潮汐光晕 */
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(201, 162, 39, 0.05) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(74, 124, 130, 0.06) 0%, transparent 45%),
+      radial-gradient(circle at 50% 50%, rgba(168, 180, 196, 0.03) 0%, transparent 60%),
+      radial-gradient(2px 2px at 15% 25%, rgba(245, 241, 232, 0.5), transparent),
+      radial-gradient(1px 1px at 65% 15%, rgba(245, 241, 232, 0.4), transparent),
+      radial-gradient(1.5px 1.5px at 35% 75%, rgba(245, 241, 232, 0.3), transparent),
+      radial-gradient(1px 1px at 85% 85%, rgba(245, 241, 232, 0.4), transparent),
+      radial-gradient(1px 1px at 50% 10%, rgba(245, 241, 232, 0.3), transparent),
+      radial-gradient(1.5px 1.5px at 25% 60%, rgba(245, 241, 232, 0.35), transparent),
+      radial-gradient(1px 1px at 90% 40%, rgba(245, 241, 232, 0.3), transparent);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  /* 羊皮纸主题背景：纯奶油底 + 极淡暖色光晕，去掉星点 */
+  [data-theme="parchment"] body {
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(130, 100, 20, 0.05) 0%, transparent 45%),
+      radial-gradient(circle at 80% 70%, rgba(53, 96, 102, 0.04) 0%, transparent 50%);
+  }
+
+  /* focus-visible 全局样式：黄铜描边，强化键盘可达性 */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-brass ring-offset-2 ring-offset-abyss;
+  }
+}
+
+@layer components {
+  /* 玻璃面板：半透明深色 + 模糊 + 黄铜边框 */
+  .glass-panel {
+    @apply rounded-lg border border-brass/30 bg-abyss-300/60 backdrop-blur-md;
+  }
+
+  /* 黄铜微光：外发光阴影（颜色跟随主题变量） */
+  .brass-glow {
+    box-shadow:
+      0 0 20px rgb(var(--color-brass) / 0.15),
+      0 0 40px rgb(var(--color-brass) / 0.08);
+  }
+
+  /* 罗盘网格背景：细密黄铜经纬线（颜色跟随主题变量） */
+  .compass-grid {
+    background-image:
+      linear-gradient(rgb(var(--color-brass) / 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--color-brass) / 0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* 象牙白到星光银渐变文字（颜色跟随主题变量） */
+  .text-gradient-ivory {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, rgb(var(--color-ivory)) 0%, rgb(var(--color-starlight)) 100%);
+  }
+}
+
+/* 自定义滚动条：轨道 + 黄铜滑块（颜色跟随主题变量，浅色主题自动适配） */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(var(--color-abyss-700));
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-brass));
+  border-radius: 5px;
+  border: 2px solid rgb(var(--color-abyss-700));
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-brass-light));
+}
+
+/* Firefox 滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-brass)) rgb(var(--color-abyss-700));
+}
+
+/* 罗盘玫瑰旋转动画：缓慢匀速一圈，供罗盘指针/玫瑰图使用 */
+@keyframes compass-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-compass-spin {
+  animation: compass-spin 60s linear infinite;
+}

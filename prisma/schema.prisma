@@ -1,0 +1,458 @@
+// Compass 数据库 Schema —— 刷题版（V1）
+// 使用 PostgreSQL 作为数据源
+// 核心：QuestionBank / Question / ReviewItem(FSRS) / ReviewLog / AnswerRecord / LearningPlan / FsrsParams
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// 枚举
+// ============================================================
+
+// 题型（V1 支持 4 种，预留扩展位）
+enum QuestionType {
+  SINGLE_CHOICE // 单选
+  MULTI_CHOICE  // 多选
+  TRUE_FALSE    // 判断
+  FILL_BLANK    // 填空
+  // 预留：SHORT_ANSWER / ESSAY / CODING / CASE
+}
+
+// 题库来源
+enum BankSource {
+  MANUAL            // 手动创建
+  IMPORT_MD         // Markdown 导入
+  IMPORT_EXCEL      // Excel/CSV 导入
+  IMPORT_WORD       // Word 导入
+  IMPORT_ANKI       // Anki .apkg 导入（预留）
+  AGENT_GENERATED   // 智能体生成（V1 仅占位）
+}
+
+// 题库可见性
+enum Visibility {
+  PRIVATE   // 仅创建者可见
+  UNLISTED  // 拥有链接可见
+  PUBLIC    // 全公开
+}
+
+// FSRS 卡片状态（与 ts-fsrs State 对齐）
+enum CardState {
+  NEW         // 0 - 新卡，从未复习
+  LEARNING    // 1 - 学习阶段（learning_steps 内）
+  REVIEW      // 2 - 已毕业，按 dueAt 调度
+  RELEARNING  // 3 - 复习失败回到重学
+}
+
+// FSRS 评分等级（与 ts-fsrs Rating 对齐）
+enum Rating {
+  AGAIN // 1
+  HARD  // 2
+  GOOD  // 3
+  EASY  // 4
+}
+
+// 答题会话模式
+enum SessionMode {
+  LEARN        // FSRS 调度的正常学习（新题 + 复习）
+  REVIEW_ONLY  // 仅复习到期
+  WRONG_REDO   // 错题重做
+  EXAM         // 模考（计时、不立即反馈）
+  CUSTOM       // 自定义筛选
+}
+
+// 学习计划状态
+enum PlanStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+// 智能体生成任务状态（V1 仅占位）
+enum AgentTaskStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+// 错因归因（用于错题本标签化）
+enum ErrorReason {
+  concept        // 概念不清
+  calculation    // 计算失误
+  comprehension  // 审题偏差
+  memory         // 记忆模糊
+  step           // 步骤遗漏
+  careless       // 粗心大意
+  unknown        // 其他
+}
+
+// ============================================================
+// 用户与认证（沿用原 Compass 设计）
+// ============================================================
+
+model User {
+  id           String          @id @default(uuid())
+  email        String          @unique
+  name         String
+  passwordHash String?
+  image        String?
+  // 主题：deep-sea（默认）/ ivory-light / high-contrast
+  theme        String          @default("deep-sea")
+  // i18n 语言偏好：zh-CN（默认）/ en
+  locale       String          @default("zh-CN")
+  // FSRS 全局偏好（可被 QuestionBank 覆盖）
+  defaultDesiredRetention  Float   @default(0.90)
+  defaultNewCardsPerDay    Int     @default(20)
+  defaultMaxReviewsPerDay  Int     @default(200)
+  // 总通知开关
+  notificationsEnabled Boolean  @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  passwordResets PasswordReset[]
+  // 刷题业务关系
+  questionBanks   QuestionBank[]
+  quizSessions    QuizSession[]
+  answerRecords   AnswerRecord[]
+  reviewItems     ReviewItem[]
+  reviewLogs      ReviewLog[]
+  learningPlans   LearningPlan[]
+  fsrsParams      FsrsParams?
+  agentTasks      AgentGenerationTask[]
+  notifications   Notification[]
+  weeklyReviews   WeeklyReview[]
+}
+
+// 密码重置令牌（沿用原设计）
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============================================================
+// 题库与题目
+// ============================================================
+
+// 题库（QuestionBank）：一组题目的集合
+model QuestionBank {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String                          // 题库名称，如"考研政治马原"
+  description     String?
+  coverColor      String      @default("brass")  // 卡片封面色 token
+  source          BankSource  @default(MANUAL)
+  sourceRef       String?                         // 原始文件名 / Agent 任务 ID
+  tags            String[]   @default([])
+  visibility      Visibility @default(PRIVATE)
+  // FSRS 配置（per-bank 覆盖 user 默认值）
+  fsrsEnabled        Boolean @default(true)
+  desiredRetention   Float   @default(0.90)
+  newCardsPerDay     Int     @default(20)
+  maxReviewsPerDay   Int     @default(200)
+  // 统计缓存（每次答题后异步更新）
+  totalQuestions     Int     @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  questions       Question[]
+  quizSessions    QuizSession[]
+  reviewItems     ReviewItem[]
+  learningPlans   LearningPlan[]
+  answerRecords   AnswerRecord[]
+
+  @@index([userId])
+  @@index([visibility])
+}
+
+// 题目（Question）
+model Question {
+  id              String       @id @default(uuid())
+  bankId          String
+  bank            QuestionBank @relation(fields: [bankId], references: [id], onDelete: Cascade)
+  type            QuestionType
+  stem            String                          // Markdown 题干
+  // 选项数组 JSON：[{key:"A", text:"...", correct:true}, ...]
+  // 单选/多选：选项数组；判断：[{key:"T",...},{key:"F",...}]；填空：[{key:"1", answer:"答案", placeholder:"..."}]
+  options         Json?
+  // 标准答案：单选"A" / 多选["A","C"] / 判断 true / 填空 ["北京","Beijing"]
+  answer          Json?
+  explanation     String?                         // Markdown 解析
+  knowledgePoints String[]    @default([])        // ["马原-辩证法-对立统一"]
+  difficulty      Float       @default(2.5)       // 1-5，初始默认
+  source          String?                         // "2024国考真题-行测-第15题"
+  mediaUrls       String[]    @default([])
+  isStarred       Boolean     @default(false)     // 收藏
+  isDisabled      Boolean     @default(false)     // 软删除
+  // 题库内顺序（用于新卡排队）
+  position        Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  sessionAnswers  SessionAnswer[]
+  answerRecords   AnswerRecord[]
+  reviewItems     ReviewItem[]
+
+  @@index([bankId])
+  @@index([bankId, type])
+  @@index([bankId, isDisabled, position])
+  @@index([isStarred])
+}
+
+// ============================================================
+// 答题会话与记录
+// ============================================================
+
+// 答题会话（QuizSession）：一次连续的答题过程
+model QuizSession {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankId          String?
+  bank            QuestionBank? @relation(fields: [bankId], references: [id])
+  mode            SessionMode @default(LEARN)
+  startedAt       DateTime    @default(now())
+  endedAt         DateTime?
+  totalQuestions  Int         @default(0)
+  correctCount    Int         @default(0)
+  durationSec     Int?
+  // 配置：{ timeLimitSec, shuffle, onlyStarred, knowledgePointFilter, ... }
+  config          Json?
+
+  answers         SessionAnswer[]
+
+  @@index([userId, startedAt])
+  @@index([bankId])
+}
+
+// 会话内单题作答（SessionAnswer）
+model SessionAnswer {
+  id              String      @id @default(uuid())
+  sessionId       String
+  session         QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId      String
+  question        Question    @relation(fields: [questionId], references: [id])
+  userAnswer      Json?                          // 用户提交的答案
+  isCorrect       Boolean?
+  partialScore    Float?                         // 0-1，多选部分对支持
+  timeSpentSec    Int?
+  gradedAt        DateTime?
+  createdAt       DateTime    @default(now())
+
+  @@index([sessionId])
+  @@index([questionId])
+}
+
+// 全量答题记录（AnswerRecord）：跨会话查询、错题本、统计的基础
+model AnswerRecord {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId      String
+  question        Question    @relation(fields: [questionId], references: [id])
+  bankId          String
+  bank            QuestionBank @relation(fields: [bankId], references: [id])
+  sessionId       String?
+  userAnswer      Json?
+  isCorrect       Boolean?
+  partialScore    Float?
+  timeSpentSec    Int?
+  errorReason     ErrorReason?
+  createdAt       DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@index([questionId])
+  @@index([bankId, isCorrect])
+  @@index([userId, isCorrect])
+}
+
+// ============================================================
+// FSRS 间隔重复调度
+// ============================================================
+
+// 复习卡（ReviewItem）：每用户每题一行，承载 FSRS 状态
+model ReviewItem {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId      String
+  question        Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  bankId          String
+  bank            QuestionBank @relation(fields: [bankId], references: [id])
+
+  // === ts-fsrs Card 字段（1:1 映射）===
+  state           CardState   @default(NEW)
+  stability       Float       @default(0)       // S：记忆稳定性（天）
+  difficulty      Float       @default(0)       // D：难度 1-10
+  reps            Int         @default(0)
+  lapses          Int         @default(0)       // 复习失败次数
+  scheduledDays   Float       @default(0)
+  elapsedDays     Float       @default(0)
+
+  // === 调度字段 ===
+  dueAt           DateTime    @default(now())
+  lastReviewAt    DateTime?
+
+  // === Compass 业务字段 ===
+  isBuried        Boolean     @default(false)
+  isSuspended     Boolean     @default(false)
+  firstErrorAt    DateTime?                    // 首次答错时间（错题本排序用）
+  lastErrorAt     DateTime?                    // 最近答错时间
+  errorTags       String[]    @default([])     // 错因标签（与 ErrorReason 互补，支持自定义）
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([userId, questionId])
+  @@index([userId, dueAt])               // 每日调度核心索引
+  @@index([userId, state])               // 取新卡 / 复习卡
+  @@index([bankId, dueAt])               // 题库维度调度
+  @@index([userId, lapses])              // 错题本
+}
+
+// 复习日志（ReviewLog）：每次评分的不可变日志，用于审计 + FSRS 参数优化
+model ReviewLog {
+  id              String      @id @default(uuid())
+  reviewItemId    String
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating          Rating                          // 1=Again 2=Hard 3=Good 4=Easy
+  state           CardState                       // 评分前的 state
+  prevStability   Float
+  prevDifficulty  Float
+  prevDueAt       DateTime
+  prevElapsedDays Float
+  prevScheduledDays Float
+  reviewedAt      DateTime                        // 评分时间
+  reviewDurationMs Int?                           // 答题用时（ms），给优化器
+  createdAt       DateTime    @default(now())
+
+  @@index([userId, reviewedAt])          // 优化器扫描
+  @@index([reviewItemId, reviewedAt])
+}
+
+// FSRS 用户级参数（17/19/21 个 w 权重 + 配置）
+model FsrsParams {
+  id              String      @id @default(uuid())
+  userId          String      @unique
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  w               Float[]                        // FSRS-6 默认 21 个权重
+  requestRetention Float      @default(0.9)
+  maximumInterval Int         @default(36500)
+  learningSteps   String[]    @default(["1m", "10m"])
+  relearningSteps String[]    @default(["10m"])
+  enableFuzz      Boolean     @default(true)
+  enableShortTerm Boolean     @default(true)
+  optimizedAt     DateTime?
+  reviewCount     Int         @default(0)        // 触发优化后清零
+  version         String      @default("FSRS-6")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+// ============================================================
+// 学习计划
+// ============================================================
+
+model LearningPlan {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String                          // "30 天搞定考研政治马原"
+  bankId          String?
+  bank            QuestionBank? @relation(fields: [bankId], references: [id])
+  startDate       DateTime
+  endDate         DateTime
+  dailyNewCards   Int         @default(20)
+  dailyReviewCap  Int         @default(200)
+  desiredRetention Float      @default(0.90)
+  status          PlanStatus  @default(ACTIVE)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([userId, status])
+}
+
+// ============================================================
+// 智能体生成任务（V1 仅占位）
+// ============================================================
+
+model AgentGenerationTask {
+  id              String          @id @default(uuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankId          String?
+  // 来源：{ type: "pdf_url" | "text" | "topic", payload: "..." }
+  source          Json
+  // 配置：{ questionTypes: [...], count, difficulty, ... }
+  config          Json
+  status          AgentTaskStatus @default(PENDING)
+  resultQuestionIds String[]      @default([])
+  errorMsg        String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime        @default(now())
+
+  @@index([userId, status])
+}
+
+// ============================================================
+// 通知与周回顾（沿用原设计，简化）
+// ============================================================
+
+enum NotificationType {
+  review_due    // 复习到期
+  streak_alert  // 连续天数预警
+  system        // 系统
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType @default(system)
+  title     String
+  body      String
+  link      String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@index([userId, createdAt])
+}
+
+model WeeklyReview {
+  id           String   @id @default(uuid())
+  userId       String
+  weekStart    DateTime
+  weekEnd      DateTime
+  summary      String                              // 自动生成的概要 JSON
+  highlights   String[] @default([])
+  reflections  String?
+  nextWeekPlan String?
+  correctRate  Float?                               // 本周正确率
+  reviewCount  Int?                                 // 本周答题数
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@index([userId, weekStart])
+}
+
+generator client {
+  provider = "prisma-client-js"
+}

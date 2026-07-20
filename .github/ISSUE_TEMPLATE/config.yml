@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability
+    url: https://gitcode.com/badhope/compass/security/advisories/new
+    about: Report a security vulnerability privately. Do not open a public issue.
+  - name: Discussions
+    url: https://gitcode.com/badhope/compass/discussions
+    about: Ask questions, share ideas, or discuss the project with the community.

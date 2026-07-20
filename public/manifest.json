@@ -1,0 +1,22 @@
+{
+  "name": "Compass · 刷题罗盘",
+  "short_name": "Compass",
+  "description": "基于 FSRS-6 算法的自托管间隔重复刷题工具，以航海仪器为美学隐喻",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f14",
+  "theme_color": "#0a0f14",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

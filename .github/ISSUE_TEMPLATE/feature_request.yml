@@ -1,0 +1,52 @@
+name: Feature Request
+description: Propose a new feature or enhancement for Compass
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature requests are welcome. Please provide enough context for the maintainer to evaluate scope and feasibility.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? Describe the scenario where you needed this capability.
+      placeholder: "When I import a 200-question Excel bank, I have no way to bulk-tag knowledge points — I have to edit each question one by one in the workshop."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: How should this feature work? Describe the interaction, UI, or API changes.
+      placeholder: "Add a multi-select mode to the workshop question list. When rows are selected, show a bulk-action bar with 'Set knowledge points', 'Set difficulty', 'Move to bank', 'Delete'."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Other approaches you've thought about and why they don't work as well.
+  - type: textarea
+    id: references
+    attributes:
+      label: Prior Art
+      description: Links to similar features in other tools, mockups, or screenshots.
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: Your assessment of the feature's complexity.
+      options:
+        - Small (single component or API endpoint)
+        - Medium (multiple files, new data model)
+        - Large (new module, significant architecture change)
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I have checked existing feature requests and confirmed this is not a duplicate.
+          required: true
