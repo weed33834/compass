@@ -94,6 +94,7 @@ export default function CompassPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     // 首次进入显示 onboarding
     try {

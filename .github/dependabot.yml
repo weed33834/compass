@@ -1,0 +1,15 @@
+# Dependabot 配置 — 显式禁用版本更新
+#
+# 本仓库不启用 Dependabot 自动版本更新 PR。
+# 所有依赖（包括安全补丁）由 maintainer 手动评估后更新，理由：
+#   1. Next.js / Prisma / ts-fsrs 等核心依赖升级可能涉及破坏性变更，需要人工测试
+#   2. lockfile 变更需要重新跑 seed + 全链路验收，不适合自动 PR
+#   3. 避免依赖机器人 PR 噪音干扰主开发流
+#
+# 如果你是 fork 维护者并希望启用 Dependabot，删除此文件即可。
+# GitHub 安全通告（Security Advisories）仍然会通过 GitHub 内置机制送达，
+# 不依赖此文件。
+
+version: 2
+# 空数组 = 不创建任何 version-update PR
+updates: []

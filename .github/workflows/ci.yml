@@ -1,0 +1,61 @@
+# Compass CI — 最低程度的自动化
+# 仅做：typecheck + lint + build 三项校验，确保 main 分支始终可编译
+# 不做：自动发布、自动部署、依赖更新（依赖由 maintainer 手动管理）
+# 不做：自动合并 PR（合并由 maintainer 手动决定）
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 同一分支的新提交取消旧 run，省 CI 配额
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: typecheck · lint · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+        env:
+          # Build 时不需要真实 DB 连接，但 Next.js 静态分析会读取这些变量
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: ci-placeholder-secret-not-used-in-production

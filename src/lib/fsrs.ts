@@ -5,6 +5,7 @@
 import {
   createEmptyCard,
   fsrs,
+  forgetting_curve,
   generatorParameters,
   type Card,
   type FSRSParameters,
@@ -138,6 +139,29 @@ export function scoreToRating(score: number): Grade {
 // 创建空卡（首次进入题库时调用）
 export function newCard(now: Date = new Date()): Card {
   return createEmptyCard(now);
+}
+
+// 计算卡片当前的记忆可提取度（Retrievability）
+// FSRS-6 公式：R(t, S) = (1 + factor * t/(9*S))^decay
+//   - t = 自上次复习以来的天数（elapsed_days）
+//   - S = stability（R=90% 时的间隔天数）
+//   - decay / factor 由 w[20] 推导，与 FSRS6_DEFAULT_W 一致
+// 仅对 REVIEW / RELEARNING 状态计算；NEW / LEARNING 返回 null（stability 未稳定）
+export function retrievability(
+  card: {
+    state: State;
+    stability: number;
+    lastReviewAt: Date | null;
+  },
+  now: Date = new Date()
+): number | null {
+  if (card.state === State.New || card.state === State.Learning) return null;
+  if (!card.lastReviewAt) return null;
+  if (card.stability <= 0) return null;
+  const tMs = now.getTime() - card.lastReviewAt.getTime();
+  const tDays = Math.max(0, tMs / (1000 * 60 * 60 * 24));
+  const r = forgetting_curve(FSRS6_DEFAULT_W, tDays, card.stability);
+  return Math.max(0, Math.min(1, r));
 }
 
 // 重新导出常用类型与枚举，便于业务层使用

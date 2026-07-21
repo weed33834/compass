@@ -72,9 +72,21 @@ chore(scope): description
 
 1. Open a PR against `main` with a clear title and description.
 2. Reference any related issues using `Closes #123` or `Refs #123`.
-3. The maintainer will review within 3–5 business days.
-4. Address review feedback by pushing additional commits to the same branch.
-5. Once approved, the maintainer will squash-merge.
+3. CI must pass (`pnpm typecheck`, `pnpm lint`, `pnpm build`). See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+4. The maintainer will review within 3–5 business days.
+5. Address review feedback by pushing additional commits to the same branch.
+6. Once approved, the maintainer will squash-merge.
+
+### Repository Automation Policy
+
+This repository intentionally keeps automation to a minimum:
+
+- **CI only** — One workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `typecheck` + `lint` + `build` on every push/PR to `main`. No deploy, no release, no artifact upload.
+- **No Dependabot / Renovate** — All dependency updates (including security patches) are evaluated and applied manually by the maintainer. See [`.github/dependabot.yml`](.github/dependabot.yml).
+- **No auto-merge** — Every PR is merged manually after review. Do not enable GitHub's auto-merge feature on your fork.
+- **No bots** — No welcome bots, stale bots, or auto-labeling bots are configured.
+
+If you fork this repo and want to enable any of the above, you're free to do so in your fork—but keep the upstream clean.
 
 ## Style Conventions
 

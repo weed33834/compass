@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/api";
+import { retrievability, State } from "@/lib/fsrs";
 
 export async function GET(request: NextRequest) {
   const auth = await requireApiUser();
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
     wrongCount,
     dueTodayCount,
     streak,
+    memoryCards,
   ] = await Promise.all([
     prisma.answerRecord.count({ where: baseWhere }),
     prisma.answerRecord.count({ where: recentWhere }),
@@ -101,6 +103,17 @@ export async function GET(request: NextRequest) {
       }
       return s;
     })(),
+    // 记忆健康度数据：所有 REVIEW/RELEARNING/LEARNING 卡（同时用于 R 计算和 7 天到期预测）
+    prisma.reviewItem.findMany({
+      where: {
+        userId: auth.userId,
+        ...(bankId ? { bankId } : {}),
+        state: { in: ["REVIEW", "RELEARNING", "LEARNING"] },
+        isBuried: false,
+        isSuspended: false,
+      },
+      select: { state: true, stability: true, lastReviewAt: true, dueAt: true },
+    }),
   ]);
 
   // === 2. 趋势：每日答题数 + 正确数 ===
@@ -167,6 +180,68 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
+  // === 6. 记忆健康度（Retrievability）+ 7 天到期预测 ===
+  // FSRS-6 衰退公式：R(t, S) = (1 + factor * t/(9*S))^decay
+  // 仅对 REVIEW / RELEARNING 卡计算 R；LEARNING / NEW 跳过（stability 未稳定）
+  const now = new Date();
+  const rValues: number[] = [];
+  const distribution = [
+    { bucket: "0-30%", label: "危急", count: 0, color: "coral" },
+    { bucket: "30-50%", label: "脆弱", count: 0, color: "amber" },
+    { bucket: "50-70%", label: "尚可", count: 0, color: "tide" },
+    { bucket: "70-90%", label: "稳固", count: 0, color: "brass" },
+    { bucket: "90-100%", label: "鲜活", count: 0, color: "emerald" },
+  ];
+  let atRiskCount = 0;
+
+  // 未来 7 天到期预测桶（包含 LEARNING 卡的到期）
+  const forecastMap = new Map<string, number>();
+  const dayStarts: Date[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + i);
+    dayStarts.push(d);
+    forecastMap.set(d.toISOString().slice(0, 10), 0);
+  }
+  const forecastEnd = new Date(dayStarts[6]);
+  forecastEnd.setDate(forecastEnd.getDate() + 1);
+
+  for (const ri of memoryCards) {
+    // 到期预测：所有 REVIEW/RELEARNING/LEARNING 卡按 dueAt 归入 7 天桶
+    if (ri.dueAt >= dayStarts[0] && ri.dueAt < forecastEnd) {
+      const day = ri.dueAt.toISOString().slice(0, 10);
+      const cur = forecastMap.get(day);
+      if (cur !== undefined) forecastMap.set(day, cur + 1);
+    }
+
+    // R 计算：仅 REVIEW / RELEARNING
+    const stateNum = stateStringToNum(ri.state);
+    if (stateNum !== State.Review && stateNum !== State.Relearning) continue;
+    const r = retrievability(
+      { state: stateNum, stability: ri.stability, lastReviewAt: ri.lastReviewAt },
+      now
+    );
+    if (r === null) continue;
+    rValues.push(r);
+    if (r < 0.7) atRiskCount++;
+    if (r < 0.3) distribution[0].count++;
+    else if (r < 0.5) distribution[1].count++;
+    else if (r < 0.7) distribution[2].count++;
+    else if (r < 0.9) distribution[3].count++;
+    else distribution[4].count++;
+  }
+
+  const avgR = rValues.length > 0 ? rValues.reduce((a, b) => a + b, 0) / rValues.length : 0;
+  const forecast = Array.from(forecastMap.entries()).map(([day, count]) => ({ day, count }));
+  const memoryHealth = {
+    averageRetrievability: avgR,
+    totalCards: rValues.length,
+    atRiskCount,
+    distribution,
+    forecast,
+  };
+
   return NextResponse.json({
     overview: {
       totalAnswers,
@@ -184,6 +259,19 @@ export async function GET(request: NextRequest) {
     typeStats,
     errorReasons,
     weakPoints,
+    memoryHealth,
     meta: { days, bankId: bankId ?? null, since },
   });
+}
+
+// Prisma 字符串 CardState → ts-fsrs 数字 State
+// Prisma enum 是字符串（NEW/LEARNING/REVIEW/RELEARNING），ts-fsrs State 是数字（0/1/2/3）
+function stateStringToNum(s: string): State {
+  switch (s) {
+    case "NEW": return State.New;
+    case "LEARNING": return State.Learning;
+    case "REVIEW": return State.Review;
+    case "RELEARNING": return State.Relearning;
+    default: return State.New;
+  }
 }

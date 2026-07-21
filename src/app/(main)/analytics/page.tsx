@@ -18,6 +18,9 @@ import {
   Target,
   Layers,
   TrendingUp,
+  Brain,
+  CalendarClock,
+  AlertCircle,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 
@@ -36,6 +39,13 @@ interface Overview {
 interface TrendPoint { day: string; total: number; correct: number; rate: number; }
 interface TypeStat { type: string; total: number; correct: number; rate: number; }
 interface WeakPoint { point: string; count: number; }
+interface MemoryHealth {
+  averageRetrievability: number;
+  totalCards: number;
+  atRiskCount: number;
+  distribution: Array<{ bucket: string; label: string; count: number; color: string }>;
+  forecast: Array<{ day: string; count: number }>;
+}
 
 const TYPE_LABELS: Record<string, string> = {
   SINGLE_CHOICE: "单选题",
@@ -55,6 +65,7 @@ export default function AnalyticsPage() {
   const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [typeStats, setTypeStats] = useState<TypeStat[]>([]);
   const [weakPoints, setWeakPoints] = useState<WeakPoint[]>([]);
+  const [memoryHealth, setMemoryHealth] = useState<MemoryHealth | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [days, setDays] = useState(30);
@@ -74,6 +85,7 @@ export default function AnalyticsPage() {
       setTrend(data.trend ?? []);
       setTypeStats(data.typeStats ?? []);
       setWeakPoints(data.weakPoints ?? []);
+      setMemoryHealth(data.memoryHealth ?? null);
     } finally {
       setLoading(false);
     }
@@ -149,6 +161,20 @@ export default function AnalyticsPage() {
                     </div>
                   );
                 })}
+              </div>
+            </Panel>
+          )}
+
+          {/* 记忆健康度 + 7 天到期预测 */}
+          {memoryHealth && memoryHealth.totalCards > 0 && (
+            <Panel
+              title="记忆健康度"
+              subtitle="FSRS-6 衰退公式 R(t,S) = (1 + factor · t/9S)^decay"
+              icon={<Brain className="h-4 w-4 text-brass" />}
+            >
+              <div className="grid gap-5 lg:grid-cols-2">
+                <MemoryHealthPanel health={memoryHealth} />
+                <ForecastPanel forecast={memoryHealth.forecast} />
               </div>
             </Panel>
           )}
@@ -260,19 +286,233 @@ function StatCard({
 function Panel({
   title,
   subtitle,
+  icon,
   children,
 }: {
   title: string;
   subtitle: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div className="rounded-xl border border-starlight/15 bg-abyss-50/30 p-5">
       <div className="mb-4">
-        <h2 className="font-serif text-lg text-ivory">{title}</h2>
+        <div className="flex items-center gap-2">
+          {icon}
+          <h2 className="font-serif text-lg text-ivory">{title}</h2>
+        </div>
         {subtitle && <p className="mt-0.5 font-sans text-xs text-starlight/60">{subtitle}</p>}
       </div>
       {children}
+    </div>
+  );
+}
+
+// 记忆健康度：平均 R + 警示 + 5 桶分布
+function MemoryHealthPanel({ health }: { health: MemoryHealth }) {
+  const avgPct = Math.round(health.averageRetrievability * 100);
+  // 颜色按平均 R 区间映射
+  const avgColor =
+    avgPct >= 90 ? "text-f-emerald"
+    : avgPct >= 70 ? "text-brass"
+    : avgPct >= 50 ? "text-tide-light"
+    : "text-coral";
+  const avgRingColor =
+    avgPct >= 90 ? "#10b981"
+    : avgPct >= 70 ? "#c89b3c"
+    : avgPct >= 50 ? "#38bdf8"
+    : "#e0584a";
+
+  const maxCount = Math.max(1, ...health.distribution.map((d) => d.count));
+
+  // 颜色 token → 实际色值（SVG / 内联 style 用）
+  const colorHex: Record<string, string> = {
+    coral: "#e0584a",
+    amber: "#f59e0b",
+    tide: "#38bdf8",
+    brass: "#c89b3c",
+    emerald: "#10b981",
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* 顶部：环形 R + 警示 */}
+      <div className="flex items-center gap-4">
+        <RetrievabilityRing value={health.averageRetrievability} color={avgRingColor} />
+        <div className="min-w-0 flex-1">
+          <p className="font-sans text-xs text-starlight/70">平均记忆留存率</p>
+          <p className={`font-serif text-3xl ${avgColor}`}>{avgPct}%</p>
+          <p className="mt-0.5 font-mono text-[10px] text-starlight/50">
+            基于 {health.totalCards} 张 REVIEW / RELEARNING 卡
+          </p>
+        </div>
+      </div>
+
+      {/* 警示条 */}
+      {health.atRiskCount > 0 ? (
+        <div className="flex items-center gap-2 rounded-lg border border-coral/30 bg-coral/10 px-3 py-2 font-sans text-xs text-coral">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          <span>
+            <strong className="font-mono">{health.atRiskCount}</strong> 张卡 R&lt;70%，即将遗忘——建议今天复习
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 rounded-lg border border-f-emerald/30 bg-f-emerald/10 px-3 py-2 font-sans text-xs text-f-emerald">
+          <Brain className="h-3.5 w-3.5 shrink-0" />
+          <span>无濒危卡片，记忆状态健康</span>
+        </div>
+      )}
+
+      {/* 5 桶分布 */}
+      <div className="space-y-1.5">
+        {health.distribution.map((d) => {
+          const pct = (d.count / maxCount) * 100;
+          return (
+            <div key={d.bucket} className="flex items-center gap-2">
+              <span className="w-16 shrink-0 font-sans text-[10px] text-starlight/70">
+                {d.label}
+              </span>
+              <span className="w-14 shrink-0 font-mono text-[10px] text-starlight/50">
+                {d.bucket}
+              </span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-abyss-700/60">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${pct}%`, backgroundColor: colorHex[d.color] }}
+                />
+              </div>
+              <span className="w-8 shrink-0 text-right font-mono text-[10px] text-ivory">
+                {d.count}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// 环形进度图（SVG）：显示平均 R
+function RetrievabilityRing({ value, color }: { value: number; color: string }) {
+  const size = 64;
+  const stroke = 6;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - Math.max(0, Math.min(1, value)));
+  return (
+    <svg width={size} height={size} className="shrink-0">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="rgb(var(--color-starlight) / 0.15)"
+        strokeWidth={stroke}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={stroke}
+        strokeDasharray={c}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+    </svg>
+  );
+}
+
+// 未来 7 天到期预测：SVG 柱图
+function ForecastPanel({ forecast }: { forecast: Array<{ day: string; count: number }> }) {
+  const maxCount = Math.max(1, ...forecast.map((f) => f.count));
+  const W = 320;
+  const H = 160;
+  const PAD = 24;
+  const innerW = W - PAD * 2;
+  const innerH = H - PAD * 2;
+  const barW = innerW / forecast.length;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().slice(0, 10);
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-1.5 font-sans text-xs text-starlight/70">
+        <CalendarClock className="h-3.5 w-3.5" />
+        未来 7 天到期卡数
+      </div>
+      <div className="overflow-x-auto">
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-40 w-full min-w-[280px]">
+          {/* Y 轴网格 */}
+          {[0, 0.5, 1].map((p) => {
+            const y = PAD + innerH - p * innerH;
+            return (
+              <line
+                key={p}
+                x1={PAD}
+                x2={W - PAD}
+                y1={y}
+                y2={y}
+                stroke="rgb(var(--color-starlight) / 0.1)"
+                strokeDasharray="2 4"
+              />
+            );
+          })}
+          {/* 柱 */}
+          {forecast.map((f, i) => {
+            const barH = (f.count / maxCount) * innerH;
+            const x = PAD + i * barW + barW * 0.2;
+            const y = PAD + innerH - barH;
+            const w = barW * 0.6;
+            const isToday = f.day === todayStr;
+            return (
+              <g key={f.day}>
+                <rect
+                  x={x}
+                  y={y}
+                  width={w}
+                  height={Math.max(2, barH)}
+                  fill={isToday ? "rgb(var(--color-coral))" : "rgb(var(--color-brass))"}
+                  rx="2"
+                  opacity={f.count === 0 ? 0.3 : 1}
+                >
+                  <title>
+                    {f.day}：{f.count} 张到期
+                  </title>
+                </rect>
+                {f.count > 0 && (
+                  <text
+                    x={x + w / 2}
+                    y={y - 4}
+                    fontSize="10"
+                    fill={isToday ? "rgb(var(--color-coral))" : "rgb(var(--color-brass-light))"}
+                    fontFamily="ui-monospace"
+                    textAnchor="middle"
+                  >
+                    {f.count}
+                  </text>
+                )}
+                <text
+                  x={x + w / 2}
+                  y={H - 6}
+                  fontSize="9"
+                  fill="rgb(var(--color-starlight) / 0.5)"
+                  fontFamily="ui-monospace"
+                  textAnchor="middle"
+                >
+                  {isToday ? "今" : f.day.slice(5)}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <p className="mt-1 font-sans text-[10px] text-starlight/50">
+        红色=今天到期 · 黄铜=未来到期 · 数据来自 FSRS 调度的 dueAt
+      </p>
     </div>
   );
 }

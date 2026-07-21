@@ -13,10 +13,10 @@
 //      （或按 Space 接受默认评分 = grade 阶段的 appliedRating）
 //   5. 进入下一题；队列答完后显示完成报告
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Star, Clock, ArrowRight, RotateCcw, CheckCircle2, XCircle, Anchor } from "lucide-react";
+import { Star, Clock, ArrowRight, RotateCcw, CheckCircle2, XCircle, Anchor, History } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/Button";
 import { AnswerInput } from "./AnswerInput";
@@ -32,7 +32,58 @@ import {
   type SubmitResult,
 } from "./types";
 
-type Phase = "loading" | "answering" | "submitted" | "completed" | "error";
+type Phase = "loading" | "resume-prompt" | "answering" | "submitted" | "completed" | "error";
+
+// === 断点续答：localStorage 持久化 ===
+const RESUME_KEY = "compass:study-resume-v1.2";
+const RESUME_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 天过期
+
+interface StudyResumeData {
+  version: 1;
+  bankId: string | null;
+  mode: "LEARN" | "REVIEW_ONLY" | "WRONG_REDO";
+  items: QueueItem[];
+  stats: QueueStats | null;
+  cursor: number;
+  history: Array<{ item: QueueItem; result: SubmitResult; finalRating: Rating }>;
+  savedAt: number;
+}
+
+function saveProgress(data: StudyResumeData) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(RESUME_KEY, JSON.stringify(data));
+  } catch {
+    // 容量超限或隐私模式，静默忽略
+  }
+}
+
+function loadProgress(): StudyResumeData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(RESUME_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as StudyResumeData;
+    if (data.version !== 1) return null;
+    if (!Array.isArray(data.items) || data.items.length === 0) return null;
+    if (Date.now() - data.savedAt > RESUME_TTL_MS) {
+      localStorage.removeItem(RESUME_KEY);
+      return null;
+    }
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function clearProgress() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(RESUME_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 export default function StudyPage() {
   return (
@@ -67,6 +118,9 @@ function StudyContent() {
   const [startTime, setStartTime] = useState<number>(() => Date.now());
   // 已答记录：用于完成报告
   const [history, setHistory] = useState<Array<{ item: QueueItem; result: SubmitResult; finalRating: Rating }>>([]);
+  // 断点续答：检测到的存档
+  const [resumeData, setResumeData] = useState<StudyResumeData | null>(null);
+  const initRef = useRef(false);
 
   // 1. 拉队列
   const loadQueue = useCallback(async () => {
@@ -95,9 +149,68 @@ function StudyContent() {
     setPhase(data.items.length > 0 ? "answering" : "completed");
   }, [bankId, mode]);
 
+  // 进入页面：首次检测断点续答，后续 URL 变化才 loadQueue
   useEffect(() => {
+    if (!initRef.current) {
+      initRef.current = true;
+      const saved = loadProgress();
+      if (
+        saved &&
+        saved.bankId === (bankId ?? null) &&
+        saved.mode === mode &&
+        saved.cursor < saved.items.length
+      ) {
+        setResumeData(saved);
+        setPhase("resume-prompt");
+        return; // 等待用户选择
+      }
+      if (saved) clearProgress(); // 参数不匹配或已过期
+    }
     loadQueue();
-  }, [loadQueue]);
+  }, [loadQueue, bankId, mode]);
+
+  // 自动保存进度：phase 在 answering/submitted 时持续写 localStorage
+  useEffect(() => {
+    if (phase !== "answering" && phase !== "submitted") return;
+    if (items.length === 0) return;
+    saveProgress({
+      version: 1,
+      bankId: bankId ?? null,
+      mode,
+      items,
+      stats,
+      cursor,
+      history,
+      savedAt: Date.now(),
+    });
+  }, [phase, items, stats, cursor, history, bankId, mode]);
+
+  // 完成时清除存档
+  useEffect(() => {
+    if (phase === "completed") {
+      clearProgress();
+    }
+  }, [phase]);
+
+  // 用户选择是否恢复
+  const handleResumeChoice = (resume: boolean) => {
+    if (resume && resumeData) {
+      setItems(resumeData.items);
+      setStats(resumeData.stats);
+      setCursor(resumeData.cursor);
+      setHistory(resumeData.history);
+      setUserAnswer(null);
+      setGradeResult(null);
+      setApplyResult(null);
+      setStartTime(Date.now());
+      setResumeData(null);
+      setPhase("answering");
+    } else {
+      clearProgress();
+      setResumeData(null);
+      loadQueue();
+    }
+  };
 
   const currentItem = items[cursor];
   const progress = useMemo(() => {
@@ -259,6 +372,64 @@ function StudyContent() {
         <div className="text-center">
           <Anchor className="mx-auto h-10 w-10 animate-pulse text-brass" />
           <p className="mt-4 font-sans text-sm text-starlight">正在装载题库...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 断点续答提示
+  if (phase === "resume-prompt" && resumeData) {
+    const total = resumeData.items.length;
+    const remaining = total - resumeData.cursor;
+    const correctCount = resumeData.history.filter((h) => h.result.isCorrect).length;
+    const savedDate = new Date(resumeData.savedAt);
+    const savedAtStr = `${savedDate.getMonth() + 1}月${savedDate.getDate()}日 ${String(savedDate.getHours()).padStart(2, "0")}:${String(savedDate.getMinutes()).padStart(2, "0")}`;
+    return (
+      <div className="mx-auto max-w-xl px-6 py-12">
+        <div className="rounded-2xl border border-brass/30 bg-gradient-to-br from-brass/10 via-abyss-50/40 to-abyss-700/40 p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brass/40 bg-brass/10">
+            <History className="h-7 w-7 text-brass" />
+          </div>
+          <h2 className="mt-4 font-serif text-2xl text-ivory">检测到未完成的答题</h2>
+          <p className="mt-2 font-sans text-xs text-starlight/70">
+            上次保存于 {savedAtStr}
+          </p>
+
+          <div className="mt-5 grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-starlight/15 bg-abyss-700/40 p-3">
+              <p className="font-serif text-xl text-brass">{total}</p>
+              <p className="mt-0.5 font-sans text-[10px] text-starlight">总题数</p>
+            </div>
+            <div className="rounded-xl border border-starlight/15 bg-abyss-700/40 p-3">
+              <p className="font-serif text-xl text-f-emerald">{resumeData.cursor}</p>
+              <p className="mt-0.5 font-sans text-[10px] text-starlight">已答</p>
+            </div>
+            <div className="rounded-xl border border-starlight/15 bg-abyss-700/40 p-3">
+              <p className="font-serif text-xl text-coral">{remaining}</p>
+              <p className="mt-0.5 font-sans text-[10px] text-starlight">剩余</p>
+            </div>
+          </div>
+
+          {resumeData.history.length > 0 && (
+            <p className="mt-3 font-sans text-xs text-starlight/70">
+              已答 {resumeData.history.length} 题 · 答对 {correctCount} · 正确率{" "}
+              <span className={correctCount / resumeData.history.length >= 0.7 ? "text-f-emerald" : "text-f-amber"}>
+                {Math.round((correctCount / resumeData.history.length) * 100)}%
+              </span>
+            </p>
+          )}
+
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Button onClick={() => handleResumeChoice(true)} size="lg">
+              <History className="h-4 w-4" /> 继续答题
+            </Button>
+            <Button variant="secondary" onClick={() => handleResumeChoice(false)} size="lg">
+              <RotateCcw className="h-4 w-4" /> 放弃存档 · 重新开始
+            </Button>
+          </div>
+          <p className="mt-3 font-sans text-[10px] text-starlight/40">
+            存档保留 7 天后自动清除；完成本轮答题也会自动清除
+          </p>
         </div>
       </div>
     );

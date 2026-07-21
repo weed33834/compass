@@ -2,6 +2,35 @@
 
 All notable changes to Compass are documented in this file. This project adheres to [Semantic Versioning](https://semver.org/) and [Conventional Commits](https://www.conventionalcommits.org/).
 
+## V1.2.0 — 2026-07-20
+
+### Added — 记忆健康度（Retrievability）
+
+- **`src/lib/fsrs.ts` 新增 `retrievability()` 函数**：基于 ts-fsrs `forgetting_curve` 实现 FSRS-6 衰退公式 `R(t,S) = (1 + factor · t/9S)^decay`，其中 `factor` / `decay` 由 `FSRS6_DEFAULT_W[20]` 推导。仅对 REVIEW / RELEARNING 状态的卡计算 R；NEW / LEARNING 因 stability 未稳定返回 `null`。
+- **`/api/analytics` 新增 `memoryHealth` 字段**：包含平均 R、濒危卡数（R&lt;70%）、5 桶分布（危急 / 脆弱 / 尚可 / 稳固 / 鲜活）、未来 7 天到期预测。一次 `reviewItem.findMany` 同时算 R 和 forecast，避免 N 次 SQL。
+- **`/analytics` 页新增"记忆健康度"面板**：左侧环形进度图显示平均 R（按区间映射颜色：≥90 emerald / ≥70 brass / ≥50 tide / 否则 coral），下方警示条提示濒危卡数；右侧 SVG 柱图显示未来 7 天到期数（今天=coral，未来=brass）。底部 5 桶横向柱图按桶色（coral / amber / tide / brass / emerald）显示分布。
+
+### Added — 断点续答
+
+- **`/study` 答题进度持久化**：在 `answering` / `submitted` phase 持续把 `{bankId, mode, items, stats, cursor, history, savedAt}` 写入 `localStorage[compass:study-resume-v1.2]`，每次 cursor / history 变化触发保存。
+- **进入页面检测存档**：首次 mount 时读取 localStorage，若参数（bankId + mode）匹配且 cursor 未越界，进入 `resume-prompt` phase，展示存档元信息（总题数 / 已答 / 剩余 / 正确率 / 保存时间）+ "继续答题 / 放弃存档 · 重新开始"两个 CTA。用户选"继续"直接还原 state 进入 answering；选"放弃"清除存档并重新拉队列。
+- **存档生命周期**：TTL 7 天，过期自动清除；答完本轮（phase 进入 completed）自动清除；参数不匹配自动清除。
+
+### Added — 开源仓库自动化配套
+
+- **`.github/workflows/ci.yml`**：最低程度 CI——push / PR to `main` 触发 `pnpm install --frozen-lockfile` → `db:generate` → `typecheck` → `lint` → `build`。无发布、无部署、无 artifact 上传。同分支新提交取消旧 run（`concurrency.cancel-in-progress`）。
+- **`.github/dependabot.yml`**：显式 `updates: []`，关闭 Dependabot 自动版本更新 PR。依赖（含安全补丁）由 maintainer 手动评估后更新，理由记录在文件注释。
+- **`.github/PULL_REQUEST_TEMPLATE.md`**：新增 "Maintainer Notes" 段，明示 auto-merge 禁用、依赖手动管理、CI 门禁三项规则。
+- **`CONTRIBUTING.md`**：新增 "Repository Automation Policy" 段，说明 CI only / No Dependabot / No auto-merge / No bots 四项原则。
+
+### Changed
+
+- `package.json` version `1.1.0` → `1.2.0`
+- `README.md` 核心能力表格：答题舱行加"断点续答（localStorage 7 天）"，航迹分析行加"记忆健康度（Retrievability 环形图 + 5 桶分布 + 7 天到期预测）"
+- `README.md` 路线图：V1.2 标题改为"记忆健康度与断点续答（已完成）"，3 项主功能标 `[x]`，剩余 4 项次功能保留 `[ ]`
+
+---
+
 ## V1.1.0 — 2026-07-20
 
 ### Added — 内容与引导

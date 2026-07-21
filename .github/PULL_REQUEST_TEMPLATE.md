@@ -30,3 +30,11 @@
 ## Testing
 
 <!-- Describe how you verified the change works correctly. -->
+
+---
+
+## Maintainer Notes
+
+- **Auto-merge is disabled.** All PRs are merged manually by the maintainer after review.
+- **Dependency updates are managed manually.** Do not enable Dependabot or other bots on this fork—see [`.github/dependabot.yml`](.github/dependabot.yml).
+- **CI gates:** PR must pass `pnpm typecheck`, `pnpm lint`, and `pnpm build` before merge (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
