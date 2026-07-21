@@ -2,6 +2,53 @@
 
 All notable changes to Compass are documented in this file. This project adheres to [Semantic Versioning](https://semver.org/) and [Conventional Commits](https://www.conventionalcommits.org/).
 
+## V1.3.0 — 2026-07-21
+
+### Added — 工坊题目内联编辑
+
+- **`/workshop/[id]` 题目行新增"编辑"按钮**：点击切换到内联编辑模式，可改题型、题干、选项、答案、解析、知识点、难度（1-5 滑块）、收藏标记、启用/禁用。
+- **`QuestionEditor` 组件**：4 题型分别处理——
+  - 单选 / 多选：动态增删选项（2-8 个），勾选正确答案；多选支持多选
+  - 判断：正确 / 错误两个按钮
+  - 填空：单输入框，`||` 分隔多空，`|` 分隔可接受答案
+- **切换题型时自动重置选项 / 答案**：避免不同题型间的数据形状不一致。
+- **删除二次确认**：点击"删除"按钮先弹出"确认 / 取消"内联按钮，避免误操作；DELETE 走软删除（`isDisabled=true`），保留答题记录可追溯。
+- **Toast 提示**：保存 / 删除 / 导出操作完成后右上角 Toast 反馈，3 秒自动消失。
+
+### Added — 每库 FSRS 参数调优 UI
+
+- **`/workshop/[id]` 顶部新增"FSRS"按钮**：点击展开 FSRS 参数调优面板，包含 4 项配置——
+  - FSRS 调度开关（toggle，关闭后该库不参与调度）
+  - 目标留存率（0.70-0.99 滑块，推荐 90%）
+  - 每日新题数（1-500 输入框）
+  - 每日复习上限（10-2000 输入框）
+- **保存按钮**：调用 `PATCH /api/banks/:id` 持久化，仅对此题库生效（不影响用户全局默认）。
+- **重置按钮**：恢复到题库当前 DB 值。
+
+### Added — CSV / Anki 导出
+
+- **`GET /api/banks/:id/export?format=csv`**：导出与 Excel 导入兼容的 CSV（表头 `type,stem,options,answer,explanation,difficulty,knowledge,source`），UTF-8 BOM 头确保 Excel 直接打开不乱码。文件名 `题库名-YYYYMMDD.csv`，URL 编码处理中文。
+- **`GET /api/banks/:id/export?format=anki`**：导出 Anki 桌面端可直接导入的 TSV 文本，包含 `#separator:tab` / `#html:true` / `#tags column:3` / `#deck:题库名` 头部指令。每行 `front<TAB>back<TAB>tags`，正面是题干 + 选项，背面是答案 + 解析。文件名 `题库名-YYYYMMDD.txt`。
+- **`/workshop/[id]` 顶部新增"CSV"和"Anki"两个导出按钮**：浏览器端 fetch + Blob + `<a download>` 触发下载，从 `Content-Disposition` 解析文件名。
+
+### Added — 分析页 365 天热力图
+
+- **`/analytics` 新增"连续答题热力图"面板**：GitHub 风格 365 天网格（53 列 × 7 行，周一为列起点），4 色阶（0 题 / 1-4 / 5-9 / 10-19 / 20+）映射黄铜透明度。
+- **月份标签**：每列首日所在月份变化时在顶部标注 `X月`。
+- **周标签**：左侧标 一 / 三 / 五（仅奇数行，避免密集）。
+- **Tooltip**：每个格子悬停显示 `YYYY-MM-DD：N 题（M 对）`。
+- **图例 + 统计**：底部显示 4 色阶图例和"共 N 题 / 活跃 M 天"汇总。
+- **独立加载**：热力图始终加载 365 天数据，不随上方 `days` 选择器变化，避免 30 天视图下热力图稀疏。
+
+### Changed
+
+- `package.json` version `1.2.0` → `1.3.0`
+- `README.md` 核心能力表格：造船工坊行加"题目内联编辑 + 每库 FSRS 调优 + CSV/Anki 导出"，航迹分析行加"365 天答题热力图"
+- `README.md` 路线图：V1.2 段 4 项次功能全部标 `[x]`，新增 V1.3 段（标记为已完成）
+- 修复 `workshop/[id]/page.tsx` 与 `workshop/page.tsx` 中 `useEffect` 内 `setState` 的 lint 警告（添加 `eslint-disable-next-line react-hooks/set-state-in-effect`）
+
+---
+
 ## V1.2.0 — 2026-07-20
 
 ### Added — 记忆健康度（Retrievability）

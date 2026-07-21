@@ -82,6 +82,7 @@ export default function WorkshopPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadBanks();
   }, [loadBanks]);
 

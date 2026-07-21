@@ -21,6 +21,7 @@ import {
   Brain,
   CalendarClock,
   AlertCircle,
+  Calendar,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 
@@ -46,6 +47,7 @@ interface MemoryHealth {
   distribution: Array<{ bucket: string; label: string; count: number; color: string }>;
   forecast: Array<{ day: string; count: number }>;
 }
+interface HeatmapDay { day: string; total: number; correct: number; }
 
 const TYPE_LABELS: Record<string, string> = {
   SINGLE_CHOICE: "单选题",
@@ -66,6 +68,8 @@ export default function AnalyticsPage() {
   const [typeStats, setTypeStats] = useState<TypeStat[]>([]);
   const [weakPoints, setWeakPoints] = useState<WeakPoint[]>([]);
   const [memoryHealth, setMemoryHealth] = useState<MemoryHealth | null>(null);
+  const [heatmap, setHeatmap] = useState<HeatmapDay[]>([]);
+  const [heatmapLoading, setHeatmapLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [days, setDays] = useState(30);
@@ -91,9 +95,27 @@ export default function AnalyticsPage() {
     }
   }, [days]);
 
+  // 热力图独立加载 365 天数据，不随 days 切换变化
+  const loadHeatmap = useCallback(async () => {
+    setHeatmapLoading(true);
+    try {
+      const res = await apiFetch(`/api/analytics?days=365`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const trend365: TrendPoint[] = data.trend ?? [];
+      setHeatmap(trend365.map((t) => ({ day: t.day, total: t.total, correct: t.correct })));
+    } finally {
+      setHeatmapLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    loadHeatmap();
+  }, [loadHeatmap]);
 
   return (
     <div className="space-y-6">
@@ -164,6 +186,21 @@ export default function AnalyticsPage() {
               </div>
             </Panel>
           )}
+
+          {/* 365 天热力图 */}
+          <Panel
+            title="连续答题热力图"
+            subtitle="近 365 天每日答题量，颜色越深答题越多"
+            icon={<Calendar className="h-4 w-4 text-brass" />}
+          >
+            {heatmapLoading ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-brass" />
+              </div>
+            ) : (
+              <Heatmap days={heatmap} />
+            )}
+          </Panel>
 
           {/* 记忆健康度 + 7 天到期预测 */}
           {memoryHealth && memoryHealth.totalCards > 0 && (
@@ -631,6 +668,179 @@ function TrendChart({ trend }: { trend: TrendPoint[] }) {
         <span className="flex items-center gap-1">
           <span className="inline-block h-0.5 w-3 bg-brass" /> 正确率
         </span>
+      </div>
+    </div>
+  );
+}
+
+// 365 天答题热力图（GitHub 风格）
+function Heatmap({ days }: { days: HeatmapDay[] }) {
+  // 构造完整 365 天序列：从今天往前 364 天
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const totalDays = 365;
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - (totalDays - 1));
+
+  // 把 trend 数据按 day 建索引
+  const dataMap = new Map<string, HeatmapDay>();
+  for (const d of days) dataMap.set(d.day, d);
+
+  // 计算颜色级别
+  // 0 题 → level 0；1-4 → 1；5-9 → 2；10-19 → 3；>=20 → 4
+  const levelFor = (n: number): 0 | 1 | 2 | 3 | 4 => {
+    if (n <= 0) return 0;
+    if (n < 5) return 1;
+    if (n < 10) return 2;
+    if (n < 20) return 3;
+    return 4;
+  };
+  const levelColor: Record<0 | 1 | 2 | 3 | 4, string> = {
+    0: "rgba(240,234,214,0.06)",
+    1: "rgba(201,155,60,0.35)",
+    2: "rgba(201,155,60,0.55)",
+    3: "rgba(201,155,60,0.80)",
+    4: "rgba(201,155,60,1)",
+  };
+
+  // 按周分列：找到 startDate 对应的周日（GitHub 风格：每列从周日开始）
+  // 这里用周一为列起点（中文习惯），让第一列对齐到周一
+  // 计算需要前补多少天让第一列从周一开始
+  const firstDow = startDate.getDay(); // 0=周日 ... 1=周一 ... 6=周六
+  // 我们以周一为列起点：把 startDate 往前推到最近的周一
+  const offsetToMonday = (firstDow + 6) % 7; // 0 if 周一, 1 if 周二, ... 6 if 周日
+  const gridStartDate = new Date(startDate);
+  gridStartDate.setDate(gridStartDate.getDate() - offsetToMonday);
+
+  // 生成所有格子（按列扫描）
+  const cells: Array<{ date: Date; inRange: boolean; data: HeatmapDay | null }> = [];
+  const cursor = new Date(gridStartDate);
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() + 1); // 含今天
+  while (cursor < endDate) {
+    const dayStr = cursor.toISOString().slice(0, 10);
+    const inRange = cursor >= startDate;
+    cells.push({
+      date: new Date(cursor),
+      inRange,
+      data: inRange ? (dataMap.get(dayStr) ?? null) : null,
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  // 列数 = ceil(cells.length / 7)
+  const totalCols = Math.ceil(cells.length / 7);
+  const cellSize = 11;
+  const gap = 3;
+  const step = cellSize + gap;
+  const labelOffset = 24; // 左侧周标签宽度
+  const topOffset = 18; // 顶部月份标签高度
+  const W = labelOffset + totalCols * step;
+  const H = topOffset + 7 * step;
+
+  // 月份标签：扫描每列首日（周一），如果月份变化就标
+  const monthLabels: Array<{ col: number; label: string }> = [];
+  let lastMonth = -1;
+  for (let col = 0; col < totalCols; col++) {
+    const idx = col * 7;
+    if (idx >= cells.length) break;
+    const d = cells[idx].date;
+    const m = d.getMonth();
+    if (m !== lastMonth) {
+      monthLabels.push({ col, label: `${m + 1}月` });
+      lastMonth = m;
+    }
+  }
+
+  // 周标签：左侧显示 一 / 三 / 五（第 1/3/5 行）
+  const weekLabels = [
+    { row: 0, label: "一" },
+    { row: 2, label: "三" },
+    { row: 4, label: "五" },
+  ];
+
+  // 统计
+  const totalAnswers = days.reduce((s, d) => s + d.total, 0);
+  const activeDays = days.filter((d) => d.total > 0).length;
+
+  return (
+    <div>
+      <div className="overflow-x-auto">
+        <svg viewBox={`0 0 ${W} ${H}`} className="min-w-[640px] w-full" style={{ maxHeight: 200 }}>
+          {/* 月份标签 */}
+          {monthLabels.map((m) => (
+            <text
+              key={`${m.col}-${m.label}`}
+              x={labelOffset + m.col * step}
+              y={12}
+              fontSize="10"
+              fill="rgb(var(--color-starlight) / 0.6)"
+              fontFamily="ui-sans-serif"
+            >
+              {m.label}
+            </text>
+          ))}
+          {/* 周标签 */}
+          {weekLabels.map((w) => (
+            <text
+              key={w.label}
+              x={0}
+              y={topOffset + w.row * step + cellSize - 1}
+              fontSize="9"
+              fill="rgb(var(--color-starlight) / 0.5)"
+              fontFamily="ui-sans-serif"
+            >
+              {w.label}
+            </text>
+          ))}
+          {/* 热力格 */}
+          {cells.map((c, i) => {
+            const col = Math.floor(i / 7);
+            const row = i % 7;
+            const x = labelOffset + col * step;
+            const y = topOffset + row * step;
+            const total = c.data?.total ?? 0;
+            const level = levelFor(total);
+            const dayStr = c.date.toISOString().slice(0, 10);
+            const correct = c.data?.correct ?? 0;
+            return (
+              <rect
+                key={i}
+                x={x}
+                y={y}
+                width={cellSize}
+                height={cellSize}
+                rx={2}
+                fill={c.inRange ? levelColor[level] : "transparent"}
+                stroke={c.inRange ? "rgba(240,234,214,0.04)" : "transparent"}
+                strokeWidth={1}
+              >
+                <title>
+                  {dayStr}：{c.inRange ? `${total} 题（${correct} 对）` : "范围外"}
+                </title>
+              </rect>
+            );
+          })}
+        </svg>
+      </div>
+      {/* 图例 + 统计 */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 font-sans text-xs text-starlight/70">
+        <div className="flex items-center gap-2">
+          <span>少</span>
+          {([0, 1, 2, 3, 4] as const).map((l) => (
+            <span
+              key={l}
+              className="inline-block h-3 w-3 rounded-sm"
+              style={{ backgroundColor: levelColor[l] }}
+              title={`Level ${l}`}
+            />
+          ))}
+          <span>多</span>
+        </div>
+        <div className="flex items-center gap-3 font-mono text-[11px]">
+          <span>共 <span className="text-brass">{totalAnswers}</span> 题</span>
+          <span>活跃 <span className="text-brass">{activeDays}</span> 天</span>
+        </div>
       </div>
     </div>
   );
