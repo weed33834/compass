@@ -52,7 +52,7 @@ Out of scope:
 
 ## Dependencies
 
-Compass uses Renovate-style dependency management. All dependencies are kept current within the constraints of the lockfile. If you discover a vulnerability in a transitive dependency, please report it—we will update the dependency tree and release a patch.
+Compass manages dependencies manually. No Dependabot, Renovate, or other automation is enabled—every update is reviewed and tested by the maintainer before merge (see [`.github/dependabot.yml`](.github/dependabot.yml) and [CONTRIBUTING.md § Repository Automation Policy](CONTRIBUTING.md#repository-automation-policy)). If you discover a vulnerability in a transitive dependency, please report it privately—we will update the dependency tree and release a patch.
 
 ## Disclosure Policy
 
