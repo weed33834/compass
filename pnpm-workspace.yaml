@@ -1,3 +1,6 @@
+# pnpm 11 配置（v11 移除了 onlyBuiltDependencies，改用 allowBuilds 映射）
+# 以下包的构建脚本（postinstall / install）必须显式放行，
+# 否则 fresh install 时 strictDepBuilds=true 会报 ERR_PNPM_IGNORED_BUILDS 并 exit 1。
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true

@@ -11,7 +11,8 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
 
 # 仅复制清单文件，最大化缓存命中
-COPY package.json pnpm-lock.yaml ./
+# pnpm-workspace.yaml 含 onlyBuiltDependencies 白名单，缺失会报 ERR_PNPM_IGNORED_BUILDS
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # ===== Stage 2: builder =====
