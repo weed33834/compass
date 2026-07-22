@@ -133,6 +133,19 @@ pnpm dev          # → http://localhost:3000
 
 ## 题库导入
 
+### 官方题库（内置）
+
+Compass 随仓库分发 4 个官方题库（Markdown 静态文件），位于 `public/official-banks/`：
+
+| 题库 | 题数 | 覆盖范围 |
+|------|------|----------|
+| FSRS 与间隔重复入门 | 20 | FSRS-6 核心概念、DSR 模型、评分机制、参数优化 |
+| 中国地理与人文常识 | 20 | 省级行政区、山川河流、世界遗产、节气民俗 |
+| 编程基础与 TypeScript | 20 | 类型系统、泛型、异步、模块、最佳实践 |
+| Python 编程基础 | 20 | 数据类型、控制流、函数、模块、面向对象、异常 |
+
+进入 `/workshop` → 点击"官方题库"→ 选择题库 → 点击"加载"。题库文件随仓库分发，**不加载不占数据库**，加载时复用 Markdown 导入 API。
+
 ### Markdown（推荐）
 
 ```markdown
@@ -391,6 +404,12 @@ prisma/
 - [x] **每库 FSRS 参数调优**：开关 / 留存率滑块 / 新题数 / 复习上限
 - [x] **CSV / Anki 导出**：CSV 与导入兼容（带 BOM），Anki TSV 带 `#deck` / `#tags column` 头部
 - [x] **分析页 365 天热力图**：GitHub 风格 4 色阶，月份 / 周标签，tooltip
+
+### V1.4 — 官方题库按需加载（已完成）
+
+- [x] **内置官方题库**：4 个题库（FSRS / 中国地理 / TypeScript / Python）以 Markdown 静态文件随仓库分发，`manifest.json` 索引
+- [x] **按需加载 UI**：`/workshop` → "官方题库"对话框 → 点击加载，不点不占数据库
+- [x] **seed 精简化**：不再自动插入题库，只创建 demo 用户 + FSRS 参数
 
 ### V2 — AI 智能体
 

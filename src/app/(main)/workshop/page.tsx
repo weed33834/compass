@@ -21,6 +21,8 @@ import {
   Loader2,
   AlertTriangle,
   CheckCircle2,
+  BookOpen,
+  Download,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/Button";
@@ -63,6 +65,7 @@ export default function WorkshopPage() {
   // 新建/导入对话框
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showOfficial, setShowOfficial] = useState(false);
 
   const loadBanks = useCallback(async () => {
     setLoading(true);
@@ -106,6 +109,9 @@ export default function WorkshopPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setShowOfficial(true)}>
+            <BookOpen className="h-4 w-4" /> 官方题库
+          </Button>
           <Button variant="secondary" onClick={() => setShowImport(true)}>
             <Upload className="h-4 w-4" /> 导入文件
           </Button>
@@ -141,7 +147,11 @@ export default function WorkshopPage() {
           <Loader2 className="h-6 w-6 animate-spin text-brass" />
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState onCreate={() => setShowCreate(true)} onImport={() => setShowImport(true)} />
+        <EmptyState
+          onCreate={() => setShowCreate(true)}
+          onImport={() => setShowImport(true)}
+          onOfficial={() => setShowOfficial(true)}
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((bank) => (
@@ -167,6 +177,18 @@ export default function WorkshopPage() {
           onClose={() => setShowImport(false)}
           onImported={() => {
             setShowImport(false);
+            loadBanks();
+          }}
+        />
+      )}
+
+      {/* 官方题库对话框 */}
+      {showOfficial && (
+        <OfficialBanksDialog
+          existingBanks={banks}
+          onClose={() => setShowOfficial(false)}
+          onImported={() => {
+            setShowOfficial(false);
             loadBanks();
           }}
         />
@@ -234,7 +256,7 @@ function sourceLabel(source: string): string {
 }
 
 // ============ 空状态 ============
-function EmptyState({ onCreate, onImport }: { onCreate: () => void; onImport: () => void }) {
+function EmptyState({ onCreate, onImport, onOfficial }: { onCreate: () => void; onImport: () => void; onOfficial: () => void }) {
   return (
     <div className="rounded-2xl border border-dashed border-starlight/20 bg-abyss-50/20 p-12 text-center">
       <Ship className="mx-auto h-12 w-12 text-brass/50" />
@@ -242,7 +264,10 @@ function EmptyState({ onCreate, onImport }: { onCreate: () => void; onImport: ()
       <p className="mt-2 font-sans text-sm text-starlight">
         新建一个空题库，或直接从 Markdown / Excel / Word 文件导入
       </p>
-      <div className="mt-6 flex justify-center gap-3">
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <Button variant="secondary" onClick={onOfficial}>
+          <BookOpen className="h-4 w-4" /> 官方题库
+        </Button>
         <Button variant="secondary" onClick={onImport}>
           <Upload className="h-4 w-4" /> 导入文件
         </Button>
@@ -583,5 +608,205 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <label className="mb-1.5 block font-sans text-xs text-starlight">{label}</label>
       {children}
     </div>
+  );
+}
+
+// ============ 官方题库对话框 ============
+interface OfficialBankMeta {
+  id: string;
+  name: string;
+  file: string;
+  description: string;
+  coverColor: string;
+  tags: string[];
+  questionCount: number;
+  newCardsPerDay: number;
+  difficulty: string;
+}
+
+interface OfficialManifest {
+  version: number;
+  updatedAt: string;
+  banks: OfficialBankMeta[];
+}
+
+const OFFICIAL_COVER_COLORS: Record<string, string> = {
+  brass: "from-brass/20 to-brass-dark/5 border-brass/30",
+  tide: "from-tide/20 to-tide-dark/5 border-tide/30",
+  coral: "from-coral/20 to-coral-dark/5 border-coral/30",
+  starlight: "from-starlight/15 to-starlight-dark/5 border-starlight/25",
+};
+
+function officialCoverClass(color: string): string {
+  return OFFICIAL_COVER_COLORS[color] ?? OFFICIAL_COVER_COLORS.brass;
+}
+
+function OfficialBanksDialog({
+  existingBanks,
+  onClose,
+  onImported,
+}: {
+  existingBanks: BankListItem[];
+  onClose: () => void;
+  onImported: (info: { bankName: string; questionCount: number }) => void;
+}) {
+  const [manifest, setManifest] = useState<OfficialManifest | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  // 已导入的官方题库名称集合（用于标记"已加载"）
+  const loadedNames = new Set(existingBanks.map((b) => b.name));
+  // 正在加载中的官方题库 id
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
+  // 单题库导入结果反馈
+  const [result, setResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/official-banks/manifest.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("manifest 加载失败");
+        const data: OfficialManifest = await res.json();
+        if (!cancelled) {
+          setManifest(data);
+          setLoading(false);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "加载失败");
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleLoad = async (bank: OfficialBankMeta) => {
+    setLoadingIds((prev) => new Set(prev).add(bank.id));
+    setResult(null);
+    try {
+      // 1. 拉取 Markdown 文本（public 静态文件，免鉴权）
+      const mdRes = await fetch(bank.file, { cache: "no-store" });
+      if (!mdRes.ok) throw new Error("题库文件下载失败");
+      const mdText = await mdRes.text();
+      // 2. 构造 File 对象，复用 /api/banks/import
+      const file = new File([mdText], `${bank.name}.md`, { type: "text/markdown" });
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("name", bank.name);
+      if (bank.description) fd.append("description", bank.description);
+      fd.append("tags", bank.tags.join(","));
+      fd.append("coverColor", bank.coverColor);
+      fd.append("newCardsPerDay", String(bank.newCardsPerDay));
+      const res = await apiFetch("/api/banks/import", { method: "POST", body: fd });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setResult({ id: bank.id, ok: false, msg: data?.error ?? "导入失败" });
+        return;
+      }
+      setResult({ id: bank.id, ok: true, msg: `已加载 ${data.questionCount ?? bank.questionCount} 题` });
+      // 延迟关闭对话框，让用户看到成功反馈
+      setTimeout(() => {
+        onImported({ bankName: data.bankName ?? bank.name, questionCount: data.questionCount ?? bank.questionCount });
+      }, 800);
+    } catch (e) {
+      setResult({ id: bank.id, ok: false, msg: e instanceof Error ? e.message : "加载失败" });
+    } finally {
+      setLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(bank.id);
+        return next;
+      });
+    }
+  };
+
+  return (
+    <ModalShell title="官方题库" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="font-sans text-xs text-starlight">
+          从内置官方题库中选择加载。题库文件随仓库分发，按需加载到你的工坊，不加载不占数据库。
+        </p>
+
+        {loading && (
+          <div className="flex h-32 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-brass" />
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-center gap-2 rounded-md border border-coral/30 bg-coral/10 px-3 py-2 font-sans text-xs text-coral">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        {manifest && (
+          <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
+            {manifest.banks.map((bank) => {
+              const isLoaded = loadedNames.has(bank.name);
+              const isLoading = loadingIds.has(bank.id);
+              const isThisResult = result?.id === bank.id;
+              return (
+                <div
+                  key={bank.id}
+                  className={`rounded-xl border bg-gradient-to-br p-4 ${officialCoverClass(bank.coverColor)}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 shrink-0 text-brass" />
+                        <h3 className="truncate font-serif text-base text-ivory">{bank.name}</h3>
+                      </div>
+                      <p className="mt-1 line-clamp-2 font-sans text-xs text-starlight/80">{bank.description}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 font-mono text-[11px] text-starlight/60">
+                        <span>{bank.questionCount} 题</span>
+                        <span>·</span>
+                        <span>{bank.difficulty}</span>
+                        {bank.tags.length > 0 && (
+                          <>
+                            <span>·</span>
+                            <span className="truncate">{bank.tags.join(" / ")}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                      {isLoaded ? (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-emerald/30 bg-emerald/10 px-2.5 py-1.5 font-sans text-xs text-emerald">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> 已加载
+                        </span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => handleLoad(bank)}
+                          loading={isLoading}
+                          disabled={isLoading}
+                        >
+                          {!isLoading && <Download className="h-3.5 w-3.5" />}
+                          {isLoading ? "加载中" : "加载"}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {isThisResult && (
+                    <div
+                      className={`mt-2 rounded-md px-2.5 py-1.5 font-sans text-xs ${
+                        result.ok
+                          ? "border border-emerald/30 bg-emerald/10 text-emerald"
+                          : "border border-coral/30 bg-coral/10 text-coral"
+                      }`}
+                    >
+                      {result.msg}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </ModalShell>
   );
 }

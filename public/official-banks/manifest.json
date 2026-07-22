@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-21",
+  "banks": [
+    {
+      "id": "fsrs-intro",
+      "name": "FSRS 与间隔重复入门",
+      "file": "/official-banks/fsrs-间隔重复入门.md",
+      "description": "覆盖 FSRS-6 核心概念、DSR 模型、评分机制、参数优化，共 20 题。适合刚接触算法的开发者。",
+      "coverColor": "brass",
+      "tags": ["FSRS", "算法", "示例"],
+      "questionCount": 20,
+      "newCardsPerDay": 20,
+      "difficulty": "入门-进阶"
+    },
+    {
+      "id": "geo-cn",
+      "name": "中国地理与人文常识",
+      "file": "/official-banks/中国地理与人文常识.md",
+      "description": "中国行政区划、山川河流、历史文化常识，共 20 题。适合公考备考与常识积累。",
+      "coverColor": "tide",
+      "tags": ["地理", "常识", "公考"],
+      "questionCount": 20,
+      "newCardsPerDay": 15,
+      "difficulty": "入门"
+    },
+    {
+      "id": "typescript-base",
+      "name": "编程基础与 TypeScript",
+      "file": "/official-banks/编程基础与-typescript.md",
+      "description": "TypeScript 类型系统、ES6+ 语法、前端工程化基础，共 20 题。适合前端开发者查漏补缺。",
+      "coverColor": "coral",
+      "tags": ["编程", "TypeScript", "前端"],
+      "questionCount": 20,
+      "newCardsPerDay": 10,
+      "difficulty": "入门-进阶"
+    },
+    {
+      "id": "python-base",
+      "name": "Python 编程基础",
+      "file": "/official-banks/python-编程基础.md",
+      "description": "Python 数据类型、控制流、函数、面向对象、异常与标准库，共 20 题。适合 Python 初学者与面试复习。",
+      "coverColor": "starlight",
+      "tags": ["编程", "Python", "后端"],
+      "questionCount": 20,
+      "newCardsPerDay": 15,
+      "difficulty": "入门-进阶"
+    }
+  ]
+}

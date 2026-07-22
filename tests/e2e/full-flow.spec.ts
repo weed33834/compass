@@ -90,7 +90,7 @@ test.describe("B. 罗盘首页", () => {
   });
 
   test("B3. 显示题库舰队", async ({ page }) => {
-    await login(page);
+    await ensureBankLoaded(page);
     await page.goto(`${BASE}/compass`);
     await page.waitForLoadState("networkidle");
     // 应看到至少一个题库
@@ -114,7 +114,7 @@ test.describe("B. 罗盘首页", () => {
   });
 
   test("B5. 点击题库卡片跳转到答题", async ({ page }) => {
-    await login(page);
+    await ensureBankLoaded(page);
     await page.goto(`${BASE}/compass`);
     await page.waitForLoadState("networkidle");
     const firstBank = page.locator('a[href*="/study?bankId="]').first();
@@ -126,7 +126,7 @@ test.describe("B. 罗盘首页", () => {
   });
 
   test("B6. 一键开始今日答题按钮", async ({ page }) => {
-    await login(page);
+    await ensureBankLoaded(page);
     await page.goto(`${BASE}/compass`);
     await page.waitForLoadState("networkidle");
     const startBtn = page.locator('a[href*="/study?mode=LEARN"]').first();
@@ -138,8 +138,8 @@ test.describe("B. 罗盘首页", () => {
 
 test.describe("C. 造船工坊列表", () => {
   test("C1. 显示题库列表", async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/workshop`);
+    await ensureBankLoaded(page);
+    // ensureBankLoaded 已导航到 /workshop 并确保有题库
     await page.waitForLoadState("networkidle");
     // 应有题库条目
     const banks = page.locator('a[href*="/workshop/"]');
@@ -162,8 +162,7 @@ test.describe("C. 造船工坊列表", () => {
   });
 
   test("C3. 点击题库进入详情", async ({ page }) => {
-    await login(page);
-    await page.goto(`${BASE}/workshop`);
+    await ensureBankLoaded(page);
     await page.waitForLoadState("networkidle");
     // 排除侧栏导航的 /workshop 链接，只取题库卡片（href 包含 UUID 格式）
     const firstBank = page.locator('a[href*="/workshop/"]').first();
@@ -173,11 +172,102 @@ test.describe("C. 造船工坊列表", () => {
   });
 });
 
+// =================== C2. 官方题库（V1.4 新功能） ===================
+
+test.describe("C2. 官方题库按需加载", () => {
+  test("C2-1. 官方题库按钮可见", async ({ page }) => {
+    await login(page);
+    await page.goto(`${BASE}/workshop`);
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("button", { name: /官方题库/ })).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("C2-2. 打开官方题库对话框", async ({ page }) => {
+    await login(page);
+    await page.goto(`${BASE}/workshop`);
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /官方题库/ }).first().click();
+    // 对话框标题
+    await expect(page.locator("h2", { hasText: "官方题库" })).toBeVisible({ timeout: 5_000 });
+    // 说明文字
+    await expect(page.locator("text=/按需加载/")).toBeVisible();
+  });
+
+  test("C2-3. 列出 4 个官方题库", async ({ page }) => {
+    await login(page);
+    await page.goto(`${BASE}/workshop`);
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /官方题库/ }).first().click();
+    const dialog = page.locator("div.fixed.z-50");
+    await expect(dialog.locator("h2", { hasText: "官方题库" })).toBeVisible({ timeout: 5_000 });
+    // 4 个官方题库标题（FSRS / 中国地理 / TypeScript / Python）
+    await expect(dialog.locator("h3", { hasText: "FSRS 与间隔重复入门" })).toBeVisible({ timeout: 10_000 });
+    await expect(dialog.locator("h3", { hasText: "中国地理与人文常识" })).toBeVisible();
+    await expect(dialog.locator("h3", { hasText: "编程基础与 TypeScript" })).toBeVisible();
+    await expect(dialog.locator("h3", { hasText: "Python 编程基础" })).toBeVisible();
+  });
+
+  test("C2-4. ★ 加载 Python 官方题库", async ({ page }) => {
+    await login(page);
+    await page.goto(`${BASE}/workshop`);
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /官方题库/ }).first().click();
+    const dialog = page.locator("div.fixed.z-50");
+    await expect(dialog.locator("h2", { hasText: "官方题库" })).toBeVisible({ timeout: 5_000 });
+
+    // 定位 Python 题库卡片内的"加载"按钮（通过 h3 找到所在卡片）
+    const pythonH3 = dialog.locator("h3", { hasText: "Python 编程基础" });
+    const loadBtn = pythonH3.locator("xpath=../../following-sibling::div//button");
+    await loadBtn.click();
+
+    // 等待成功反馈
+    await expect(dialog.locator("text=/已加载.*题/")).toBeVisible({ timeout: 30_000 });
+  });
+
+  test("C2-5. 已加载的题库标记为已加载", async ({ page }) => {
+    // 此测试依赖 C2-4 已加载 Python 题库（串行 worker 保证顺序）
+    await login(page);
+    await page.goto(`${BASE}/workshop`);
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /官方题库/ }).first().click();
+    const dialog = page.locator("div.fixed.z-50");
+    await expect(dialog.locator("h2", { hasText: "官方题库" })).toBeVisible({ timeout: 5_000 });
+    // Python 题库应显示"已加载"徽章
+    const pythonH3 = dialog.locator("h3", { hasText: "Python 编程基础" });
+    const pythonCard = pythonH3.locator("xpath=ancestor::div[contains(@class, 'rounded-xl')][1]");
+    await expect(pythonCard.locator("text=已加载")).toBeVisible({ timeout: 10_000 });
+  });
+});
+
 // =================== D. 题库详情（V1.3 重点） ===================
+
+// 前置：确保 demo 用户至少有一个题库（通过官方题库加载）。
+// V1.4 起 seed 不再自动插题库，D 组依赖已有题库，故在此补充加载。
+async function ensureBankLoaded(page: Page) {
+  await login(page);
+  await page.goto(`${BASE}/workshop`);
+  await page.waitForLoadState("networkidle");
+  // 如果工坊列表已有题库，直接返回
+  const bankLink = page.locator('a[href*="/workshop/"]').first();
+  if (await bankLink.isVisible({ timeout: 3_000 }).catch(() => false)) return;
+  // 没有题库 → 打开官方题库对话框，加载第一个
+  await page.getByRole("button", { name: /官方题库/ }).first().click();
+  await expect(page.locator("h2", { hasText: "官方题库" })).toBeVisible({ timeout: 5_000 });
+  const firstLoadBtn = page.getByRole("button", { name: /^加载$/ }).first();
+  await firstLoadBtn.click();
+  // 等待成功反馈出现（API 完成后显示"已加载 X 题"）
+  await expect(page.locator("text=/已加载.*题/")).toBeVisible({ timeout: 30_000 });
+  // 等待对话框自动关闭（800ms 延迟）+ 列表刷新
+  await page.waitForTimeout(2_000);
+  await page.reload();
+  await page.waitForLoadState("networkidle");
+  // 验证题库已出现在列表中
+  await expect(page.locator('a[href*="/workshop/"]').first()).toBeVisible({ timeout: 10_000 });
+}
 
 test.describe("D. 题库详情 - V1.3 新功能", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
+    await ensureBankLoaded(page);
     await page.goto(`${BASE}/workshop`);
     await page.waitForLoadState("networkidle");
     const firstBank = page.locator('a[href*="/workshop/"]').first();
@@ -365,6 +455,7 @@ test.describe("D. 题库详情 - V1.3 新功能", () => {
 
 test.describe("E. 答题舱", () => {
   test.beforeEach(async ({ page }) => {
+    await ensureBankLoaded(page);
     await login(page);
   });
 
@@ -438,8 +529,9 @@ test.describe("E. 答题舱", () => {
     await submitBtn.click();
     await page.waitForTimeout(2000);
 
-    // 应进入 submitted phase，显示评分按钮（1/2/3/4 或 Again/Hard/Good/Easy）
-    const rateBtn = page.locator('button:has-text("Again"), button:has-text("HARD"), button:has-text("GOOD"), button:has-text("EASY"), button:has-text("1"), button:has-text("2"), button:has-text("3"), button:has-text("4")').first();
+    // 应进入 submitted phase，显示评分按钮（重来/困难/良好/简单）
+    // 用 getByRole("button") 避免匹配到 role="radio" 的答案选项按钮
+    const rateBtn = page.getByRole("button", { name: /重来|困难|良好|简单/ }).first();
     if (await rateBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await rateBtn.click();
       await page.waitForTimeout(2000);

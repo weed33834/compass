@@ -2,6 +2,26 @@
 
 All notable changes to Compass are documented in this file. This project adheres to [Semantic Versioning](https://semver.org/) and [Conventional Commits](https://www.conventionalcommits.org/).
 
+## V1.4.0 — 2026-07-22
+
+### Added — 官方题库按需加载
+
+- **`public/official-banks/` 静态题库目录**：4 个官方题库以 Markdown 文件随仓库分发（FSRS 与间隔重复入门 / 中国地理与人文常识 / 编程基础与 TypeScript / **Python 编程基础**），每库 20 题覆盖 4 题型。
+- **`manifest.json` 索引**：前端 `fetch("/official-banks/manifest.json")` 获取题库元数据（名称 / 描述 / 封面色 / 标签 / 题数 / 每日新题 / 难度），无需后端。
+- **`OfficialBanksDialog` 组件**：`/workshop` 顶部新增"官方题库"按钮，弹出对话框列出全部官方题库卡片。点击"加载"→ 拉取 Markdown → 构造 `File` → 复用 `POST /api/banks/import` 导入。不点不占数据库，零内存开销。
+- **已加载标记**：已导入的官方题库在对话框中显示绿色"已加载"徽章，避免重复导入。
+- **新增 Python 官方题库**：20 题（6 单选 + 5 多选 + 4 判断 + 5 填空），覆盖数据类型、控制流、函数、模块、面向对象、异常处理等核心概念。
+
+### Changed — seed 精简化
+
+- **`prisma/seed.ts` 不再自动插入题库**：V1.4 起 seed 只创建 demo 用户 + FSRS 默认参数。题库数据保留在文件内作为参考但不写入数据库，改为通过官方题库对话框按需加载。
+- **清理遗留 seed 题库**：seed 自动删除 `sourceRef` 以 `seed-v1-` 开头的旧题库，确保从 V1.3 升级时数据库干净迁移。
+
+### Added — E2E 测试覆盖
+
+- **C2 测试组（5 项）**：官方题库按钮可见 / 对话框打开 / 列出 4 题库 / 加载 Python 题库 / 已加载标记。
+- **`ensureBankLoaded` 辅助函数**：B/C/D/E 组测试前置，自动检测工坊是否有题库，无则加载第一个官方题库，等待成功反馈后验证列表刷新。
+
 ## V1.3.0 — 2026-07-21
 
 ### Added — 工坊题目内联编辑

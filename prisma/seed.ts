@@ -875,10 +875,15 @@ const CODE_BANK: SeedBank = {
 // ============================================================
 // 主流程
 // ============================================================
+// V1.4 起：seed 只创建 demo 用户与 FSRS 默认参数，不再自动插入题库。
+// 题库改为随仓库分发的官方静态文件（public/official-banks/*.md），
+// 用户在 /workshop 点击"官方题库"按需加载，不点不占数据库。
+// 原内联题库数据（FSRS_BANK / GEO_BANK / CODE_BANK）保留在文件中作为
+// 历史参考与官方题库 Markdown 文件的生成源，但不再执行插入。
 const ALL_BANKS: SeedBank[] = [FSRS_BANK, GEO_BANK, CODE_BANK];
 
 async function main() {
-  console.log("Seeding Compass V1.1 demo data...");
+  console.log("Seeding Compass V1.4 demo user...");
 
   // 1. 创建或复用 demo 用户
   let user = await prisma.user.findUnique({ where: { email: DEMO_EMAIL } });
@@ -898,7 +903,7 @@ async function main() {
     console.log(`  • Demo user already exists: ${user.email}`);
   }
 
-  // 2. 清理旧的 seed 题库（按 sourceRef 前缀标记）
+  // 2. 清理可能存在的旧 seed 题库（V1.3 及之前自动插入的）
   const seedRefPattern = "seed-v1-";
   const oldSeedBanks = await prisma.questionBank.findMany({
     where: {
@@ -911,73 +916,10 @@ async function main() {
     await prisma.questionBank.deleteMany({
       where: { id: { in: oldSeedBanks.map((b) => b.id) } },
     });
-    console.log(`  • Removed ${oldSeedBanks.length} old seed bank(s): ${oldSeedBanks.map((b) => b.name).join(", ")}`);
+    console.log(`  • Removed ${oldSeedBanks.length} legacy seed bank(s): ${oldSeedBanks.map((b) => b.name).join(", ")}`);
   }
 
-  // 3. 批量创建题库
-  let totalQCount = 0;
-  for (const sb of ALL_BANKS) {
-    const result = await prisma.$transaction(async (tx) => {
-      const bank = await tx.questionBank.create({
-        data: {
-          userId: user!.id,
-          name: sb.name,
-          description: sb.description,
-          coverColor: sb.coverColor,
-          tags: sb.tags,
-          visibility: "PRIVATE",
-          source: "MANUAL",
-          sourceRef: sb.sourceRef,
-          fsrsEnabled: true,
-          desiredRetention: 0.9,
-          newCardsPerDay: sb.newCardsPerDay,
-          maxReviewsPerDay: 200,
-        },
-      });
-
-      const questionsData = sb.questions.map((q, idx) => ({
-        bankId: bank.id,
-        type: q.type,
-        stem: q.stem,
-        options: q.options as never,
-        answer: q.answer as never,
-        explanation: q.explanation,
-        knowledgePoints: q.knowledgePoints,
-        difficulty: q.difficulty,
-        source: q.source ?? "seed",
-        position: idx,
-      }));
-      await tx.question.createMany({ data: questionsData });
-
-      const inserted = await tx.question.findMany({
-        where: { bankId: bank.id },
-        orderBy: { position: "asc" },
-        select: { id: true },
-      });
-      await tx.reviewItem.createMany({
-        data: inserted.map((q) => ({
-          userId: user!.id,
-          questionId: q.id,
-          bankId: bank.id,
-          state: "NEW" as const,
-          dueAt: new Date(),
-        })),
-      });
-
-      await tx.questionBank.update({
-        where: { id: bank.id },
-        data: { totalQuestions: inserted.length },
-      });
-
-      return { bank, count: inserted.length };
-    });
-    console.log(`  ✓ Created bank "${result.bank.name}" with ${result.count} questions`);
-    totalQCount += result.count;
-  }
-
-  console.log(`  Total: ${ALL_BANKS.length} banks, ${totalQCount} questions`);
-
-  // 4. 写入用户级 FSRS 默认参数（可选）
+  // 3. 写入用户级 FSRS 默认参数（可选）
   const existingParams = await prisma.fsrsParams.findUnique({
     where: { userId: user.id },
   });
@@ -1001,7 +943,7 @@ async function main() {
 
   console.log("\nSeed complete.");
   console.log(`  Demo login: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
-  console.log(`  Banks: ${ALL_BANKS.map((b) => `${b.name}(${b.questions.length}题)`).join(" · ")}`);
+  console.log(`  Official banks: ${ALL_BANKS.map((b) => `${b.name}(${b.questions.length}题)`).join(" · ")} (load on demand via /workshop → 官方题库)`);
 }
 
 main()
