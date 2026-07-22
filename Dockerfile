@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ===== Stage 1: deps =====
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # ===== Stage 2: builder =====
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 ENV PNPM_HOME=/pnpm
@@ -44,7 +44,7 @@ ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
 RUN pnpm build
 
 # ===== Stage 3: runner =====
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 RUN apk add --no-cache libc6-compat openssl tini
 WORKDIR /app
 

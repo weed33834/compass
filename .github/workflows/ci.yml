@@ -32,13 +32,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11
+        # 不指定 version：由 package.json 的 packageManager 字段驱动（pnpm@11.13.1）
+        # 同时指定会触发 ERR_PNPM_BAD_PM_VERSION 版本冲突
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # pnpm 11.13.1 要求 node >=22.13（使用 node:sqlite 内置模块）
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies

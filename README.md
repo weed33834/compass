@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-c89b3c.svg?style=flat-square" /></a>
-  <img alt="Node.js" src="https://img.shields.io/badge/node-%E2%89%A520-0a0f14?style=flat-square&logo=node.js&logoColor=c89b3c" />
+  <img alt="Node.js" src="https://img.shields.io/badge/node-%E2%89%A522-0a0f14?style=flat-square&logo=node.js&logoColor=c89b3c" />
   <img alt="pnpm" src="https://img.shields.io/badge/pnpm-%E2%89%A59-c89b3c?style=flat-square&logo=pnpm&logoColor=0a0f14" />
   <img alt="PostgreSQL" src="https://img.shields.io/badge/postgresql-17-0a0f14?style=flat-square&logo=postgresql&logoColor=c89b3c" />
   <img alt="Next.js" src="https://img.shields.io/badge/next.js-16.2-0a0f14?style=flat-square&logo=next.js&logoColor=c89b3c" />
@@ -109,8 +109,8 @@ sequenceDiagram
 
 | 工具 | 最低版本 | 备注 |
 |---|---|---|
-| Node.js | 20 | 用 20.10+ 更稳 |
-| pnpm | 9 | 11 也可以 |
+| Node.js | 22.13 | pnpm 11 依赖 `node:sqlite`，需 Node 22+ |
+| pnpm | 11 | 由 `package.json` 的 `packageManager` 字段锁定，corepack 自动安装 |
 | PostgreSQL | 17 | 16 也能跑，没强制 |
 
 ### 步骤
@@ -176,7 +176,7 @@ docker compose up -d --build
 ### 镜像特性
 
 - **多阶段构建**：`deps → builder → runner`，最终镜像只含 standalone 产物 + 必要 node_modules，体积约 200MB
-- **非 root 运行**：`nodejs:20-alpine` + `node` 用户，最小权限
+- **非 root 运行**：`node:22-alpine` + `node` 用户，最小权限
 - **tini 作 PID 1**：正确处理信号 + 僵尸进程回收
 - **HEALTHCHECK**：内置 `/api/health` 探活，K8s / Docker Swarm 可直接用
 - **docker-entrypoint.sh**：等 DB → 迁移 → 启动，启动顺序安全
