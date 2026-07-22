@@ -77,24 +77,29 @@ export async function GET(request: NextRequest) {
         state: { in: ["REVIEW", "RELEARNING", "LEARNING"] },
       },
     }),
-    // 连续答题天数：从今天往前查，直到某天没答题为止
+    // H-4 修复：连续答题天数原为 N+1 查询（最坏 365 次 count），改为单次 findMany 内存分桶
     (async () => {
-      let s = 0;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const yearAgo = new Date(today);
+      yearAgo.setDate(yearAgo.getDate() - 365);
+      const recent = await prisma.answerRecord.findMany({
+        where: {
+          userId: auth.userId,
+          ...(bankId ? { bankId } : {}),
+          createdAt: { gte: yearAgo },
+        },
+        select: { createdAt: true },
+      });
+      // 按天去重放入 Set
+      const daySet = new Set(recent.map((r) => r.createdAt.toISOString().slice(0, 10)));
+      // 从今天往前推算连续天数
+      let s = 0;
       for (let i = 0; i < 365; i++) {
-        const dayStart = new Date(today);
-        dayStart.setDate(dayStart.getDate() - i);
-        const dayEnd = new Date(dayStart);
-        dayEnd.setDate(dayEnd.getDate() + 1);
-        const cnt = await prisma.answerRecord.count({
-          where: {
-            userId: auth.userId,
-            ...(bankId ? { bankId } : {}),
-            createdAt: { gte: dayStart, lt: dayEnd },
-          },
-        });
-        if (cnt === 0) {
+        const day = new Date(today);
+        day.setDate(day.getDate() - i);
+        const key = day.toISOString().slice(0, 10);
+        if (!daySet.has(key)) {
           // 今天还没答题不算断签
           if (i === 0) continue;
           break;
@@ -103,7 +108,7 @@ export async function GET(request: NextRequest) {
       }
       return s;
     })(),
-    // 记忆健康度数据：所有 REVIEW/RELEARNING/LEARNING 卡（同时用于 R 计算和 7 天到期预测）
+    // H-5 修复：记忆健康度数据加 take 上限，避免重度用户全表回传
     prisma.reviewItem.findMany({
       where: {
         userId: auth.userId,
@@ -113,6 +118,7 @@ export async function GET(request: NextRequest) {
         isSuspended: false,
       },
       select: { state: true, stability: true, lastReviewAt: true, dueAt: true },
+      take: 5000,
     }),
   ]);
 

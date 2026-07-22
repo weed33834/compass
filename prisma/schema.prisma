@@ -242,7 +242,7 @@ model SessionAnswer {
   sessionId       String
   session         QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   questionId      String
-  question        Question    @relation(fields: [questionId], references: [id])
+  question        Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
   userAnswer      Json?                          // 用户提交的答案
   isCorrect       Boolean?
   partialScore    Float?                         // 0-1，多选部分对支持
@@ -260,9 +260,9 @@ model AnswerRecord {
   userId          String
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   questionId      String
-  question        Question    @relation(fields: [questionId], references: [id])
+  question        Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
   bankId          String
-  bank            QuestionBank @relation(fields: [bankId], references: [id])
+  bank            QuestionBank @relation(fields: [bankId], references: [id], onDelete: Cascade)
   sessionId       String?
   userAnswer      Json?
   isCorrect       Boolean?
@@ -289,7 +289,7 @@ model ReviewItem {
   questionId      String
   question        Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
   bankId          String
-  bank            QuestionBank @relation(fields: [bankId], references: [id])
+  bank            QuestionBank @relation(fields: [bankId], references: [id], onDelete: Cascade)
 
   // === ts-fsrs Card 字段（1:1 映射）===
   state           CardState   @default(NEW)

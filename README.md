@@ -18,13 +18,16 @@
   <img alt="Prisma" src="https://img.shields.io/badge/prisma-5.22-c89b3c?style=flat-square&logo=prisma&logoColor=0a0f14" />
   <img alt="ts-fsrs" src="https://img.shields.io/badge/ts--fsrs-5.4-0a0f14?style=flat-square" />
   <img alt="TypeScript" src="https://img.shields.io/badge/typescript-5.9-3178c6?style=flat-square&logo=typescript&logoColor=white" />
+  <img alt="Docker" src="https://img.shields.io/badge/docker-ready-c89b3c?style=flat-square&logo=docker&logoColor=0a0f14" />
 </p>
 
 <p align="center">
   <a href="#快速开始">快速开始</a> ·
+  <a href="#docker-一键部署">Docker 部署</a> ·
   <a href="#题库导入">题库导入</a> ·
   <a href="#两阶段提交">两阶段提交</a> ·
   <a href="#架构总览">架构总览</a> ·
+  <a href="#测试">测试</a> ·
   <a href="#设计系统">设计系统</a> ·
   <a href="#路线图">路线图</a>
 </p>
@@ -128,6 +131,57 @@ pnpm dev          # → http://localhost:3000
 ```
 
 种子数据自带一个演示账号：`captain@compass.dev` / `Compass-Test-2026!`。生产环境请务必改掉或删除。
+
+---
+
+## Docker 一键部署
+
+不想本地装 Node.js / PostgreSQL？用 Docker Compose 三步起飞：
+
+```bash
+git clone https://gitcode.com/badhope/compass.git
+cd compass
+cp .env.example .env
+# 至少改两项：
+#   NEXTAUTH_URL=http://你的域名或IP:3000
+#   NEXTAUTH_SECRET=$(openssl rand -base64 32)
+#   POSTGRES_PASSWORD=改成强密码
+
+docker compose up -d --build
+```
+
+跑起来后访问 `http://localhost:3000`，容器会自动：
+
+1. 等 PostgreSQL 健康检查通过（最多 60s）
+2. 跑 `prisma migrate deploy`（应用所有迁移）
+3. 启动 Next.js standalone 生产服务器
+
+### 包含什么
+
+| 容器 | 镜像 | 作用 |
+|---|---|---|
+| `compass-db` | `postgres:17-alpine` | 数据库，数据卷持久化 |
+| `compass-app` | 本仓库 `Dockerfile` 构建 | Compass 本体（非 root 用户，tini 作 init） |
+| `compass-caddy`（可选） | `caddy:2-alpine` | 自动 HTTPS 反代 + 安全头，生产环境推荐 |
+
+### 生产环境 checklist
+
+- [ ] `NEXTAUTH_URL` 改为实际访问域名
+- [ ] `NEXTAUTH_SECRET` 用 `openssl rand -base64 32` 生成
+- [ ] `POSTGRES_PASSWORD` 改为强密码
+- [ ] 取消 `docker-compose.yml` 里 `caddy` 段注释，配置 `DOMAIN`，启用自动 HTTPS
+- [ ] 若部署在反代后，设置 `TRUSTED_PROXY_IPS` 为代理 IP（逗号分隔），否则限流可能不准
+- [ ] （可选）配置 `SMTP_URL` 启用密码重置邮件
+
+### 镜像特性
+
+- **多阶段构建**：`deps → builder → runner`，最终镜像只含 standalone 产物 + 必要 node_modules，体积约 200MB
+- **非 root 运行**：`nodejs:20-alpine` + `node` 用户，最小权限
+- **tini 作 PID 1**：正确处理信号 + 僵尸进程回收
+- **HEALTHCHECK**：内置 `/api/health` 探活，K8s / Docker Swarm 可直接用
+- **docker-entrypoint.sh**：等 DB → 迁移 → 启动，启动顺序安全
+
+> 想自己拼命令？`docker build -t compass .` 然后 `docker run -p 3000:3000 --env-file .env compass` 也行，记得自己起一个 PostgreSQL。
 
 ---
 
@@ -304,6 +358,51 @@ prisma/
 - **错题本** — `/api/wrongbook` (GET/PATCH)
 - **日志** — `/api/logbook` (GET)
 - **分析** — `/api/analytics` (GET)
+- **健康检查** — `/api/health` (GET) → Docker / K8s 探活
+
+---
+
+## 测试
+
+Compass 维护三层测试，CI 在每次 push / PR 自动跑前两层：
+
+### 单元测试（无需数据库，CI 必跑）
+
+`pnpm test:unit` 跑 49 个纯逻辑测试，覆盖三个核心模块：
+
+| 测试文件 | 数量 | 覆盖范围 |
+|---|---|---|
+| `scripts/grading-test.ts` | 13 | 4 题型判分：单选 / 多选（漏选部分给分）/ 判断（中英文布尔）/ 填空（多空 + `\|` 等价答案 + 归一化） |
+| `scripts/fsrs-test.ts` | 19 | Prisma 字符串 enum ↔ ts-fsrs 数字 State 双向转换、`dbRowToCard` / `cardToDbUpdate`、`gradeCard` 调度、`previewIntervals`、`formatInterval`、`scoreToRating` 映射 |
+| `scripts/parser-test.ts` | 17 | Markdown / Excel / Word 解析器：合法解析、空文件 / 二进制 / 未知后缀拒绝、缺答案告警、答案不在选项中告警、编号格式兼容 |
+
+测试用 `node:assert` 写，无测试框架依赖，`tsx` 直接跑。
+
+### API 烟雾测试（需 dev server + DB）
+
+`pnpm test:api` 跑 `scripts/api-test.ts`，覆盖未登录拦截、NextAuth 登录、题库 CRUD、两阶段提交、错题本、日志、分析共 7 组。需先 `pnpm dev` + 数据库就绪。
+
+### E2E 测试（Playwright，需 dev server + DB）
+
+`tests/e2e/` 下 4 套 Playwright 测试，模拟真实用户点击：
+
+| 文件 | 用例数 | 覆盖范围 |
+|---|---|---|
+| `visual-walkthrough.spec.ts` | 15 | 全站视觉走查：落地页 / 登录 / 注册 / 罗盘 / 工坊 / 答题 / 错题本 / 日志 / 分析 / 账户 / 404 |
+| `import-flow.spec.ts` | 7 | 题库导入：合法 Markdown / CSV / Word、空文件 / 二进制 / 未知后缀拒绝、告警提示 |
+| `answering-flow.spec.ts` | 5 | 完整答题流：开始 / 答完所有题 / 完成报告 / 再来一轮 / 错题重做 |
+| `full-flow.spec.ts` | — | 端到端全流程串联 |
+
+跑 E2E：`pnpm exec playwright test`（需先配置 `playwright.config.ts` 里的 baseURL）。
+
+### CI 策略
+
+CI（`.github/workflows/ci.yml`）只做最低程度的自动化门禁，**不做**自动发布 / 部署 / 依赖更新 / 自动合并 / 机器人评论：
+
+- `push` / `PR` to `main` → `install → db:generate → typecheck → lint → test:unit → build`
+- `push` to `main` → 额外跑 `docker-build` job 验证 Dockerfile 可构建
+- Dependabot 显式禁用（`.github/dependabot.yml` `updates: []`），依赖由 maintainer 手动评估
+- 同分支新提交取消旧 run，省 CI 配额
 
 ---
 
@@ -365,6 +464,10 @@ prisma/
 | `pnpm start` | 启动生产服务器 |
 | `pnpm lint` | ESLint |
 | `pnpm typecheck` | TypeScript 类型检查（`tsc --noEmit`） |
+| `pnpm test:unit` | 单元测试（判分 + FSRS + 解析器，无需 DB） |
+| `pnpm test:grading` | 仅跑判分单元测试 |
+| `pnpm test:fsrs` | 仅跑 FSRS 状态映射单元测试 |
+| `pnpm test:parser` | 仅跑导入解析器单元测试 |
 | `pnpm test:api` | API 烟雾测试（需先启动 `pnpm dev` + 数据库） |
 | `pnpm db:generate` | 生成 Prisma 客户端 |
 | `pnpm db:migrate` | 跑数据库迁移（开发） |
@@ -410,6 +513,14 @@ prisma/
 - [x] **内置官方题库**：4 个题库（FSRS / 中国地理 / TypeScript / Python）以 Markdown 静态文件随仓库分发，`manifest.json` 索引
 - [x] **按需加载 UI**：`/workshop` → "官方题库"对话框 → 点击加载，不点不占数据库
 - [x] **seed 精简化**：不再自动插入题库，只创建 demo 用户 + FSRS 参数
+
+### V1.4.1 — 生产化加固（已完成）
+
+- [x] **Docker 一键部署**：多阶段 Dockerfile + docker-compose（app + db + 可选 caddy）+ docker-entrypoint.sh + `/api/health` 探活
+- [x] **3 个 Critical 修复**：FSRS State 字符串/数字类型不匹配导致调度失效、题库删除外键级联缺失、apply 无幂等保护
+- [x] **6 个 High 修复**：analytics N+1 查询（365 次 → 1 次）、错题本 errorReason 写入、IP 信任链安全、grade 重复计数、timeSpentSec 越界 clamp、forgot-password 错误码
+- [x] **49 个单元测试**：判分 13 + FSRS 状态映射 19 + 解析器 17，CI 必跑
+- [x] **CI 加固**：新增 `test:unit` 步骤 + `docker-build` job 验证 Dockerfile 可构建
 
 ### V2 — AI 智能体
 

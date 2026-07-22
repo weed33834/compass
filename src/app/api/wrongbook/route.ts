@@ -108,7 +108,22 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ item: updated });
   }
 
-  // ErrorReason 存在 AnswerRecord 表，不在 ReviewItem；errorTags 是 ReviewItem 自定义错因标签
+  // H-8 修复：errorReason 写入最近一条答错的 AnswerRecord
+  // errorTags 是 ReviewItem 自定义错因标签（数组）
+  if (body.errorReason !== undefined) {
+    // 找最近一条该题的答错记录
+    const recentWrong = await prisma.answerRecord.findFirst({
+      where: { questionId: item.questionId, userId: auth.userId, isCorrect: false },
+      orderBy: { createdAt: "desc" },
+    });
+    if (recentWrong) {
+      await prisma.answerRecord.update({
+        where: { id: recentWrong.id },
+        data: { errorReason: body.errorReason },
+      });
+    }
+  }
+
   const updated = await prisma.reviewItem.update({
     where: { id: item.id },
     data: {

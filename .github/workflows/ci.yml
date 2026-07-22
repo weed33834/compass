@@ -1,7 +1,8 @@
 # Compass CI — 最低程度的自动化
-# 仅做：typecheck + lint + build 三项校验，确保 main 分支始终可编译
+# 仅做：typecheck + lint + 单元测试 + build 四项校验，确保 main 分支始终可编译且核心逻辑正确
 # 不做：自动发布、自动部署、依赖更新（依赖由 maintainer 手动管理）
 # 不做：自动合并 PR（合并由 maintainer 手动决定）
+# 不做：机器人自动评论 / 自动打标签 / 自动分配 reviewer
 
 name: CI
 
@@ -21,7 +22,7 @@ permissions:
 
 jobs:
   build:
-    name: typecheck · lint · build
+    name: typecheck · lint · unit-tests · build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -52,6 +53,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Unit tests（判分 + FSRS + 解析器）
+        run: pnpm test:unit
+
       - name: Build
         run: pnpm build
         env:
@@ -59,3 +63,26 @@ jobs:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
           NEXTAUTH_URL: http://localhost:3000
           NEXTAUTH_SECRET: ci-placeholder-secret-not-used-in-production
+
+  docker-build:
+    name: docker-build（验证 Dockerfile 可构建）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # 仅在 main 分支 push 时跑（PR 跳过省配额）
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: compass:ci
+          build-args: |
+            DATABASE_URL=postgresql://ci:ci@localhost:5432/ci?schema=public
+            NEXTAUTH_URL=http://localhost:3000
+            NEXTAUTH_SECRET=ci-placeholder-secret

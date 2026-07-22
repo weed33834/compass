@@ -59,9 +59,14 @@ export async function POST(request: NextRequest) {
   // 1. 判分
   const grading = gradeQuestion(reviewItem.question, body.userAnswer);
 
+  // C-3 修复：clamp timeSpentSec，防止恶意放大污染统计
+  const timeSpentSec = body.timeSpentSec != null
+    ? Math.max(0, Math.min(3600, Math.floor(body.timeSpentSec)))
+    : null;
+
   // 2. 计算预览间隔（基于评分前的 Card 状态）
   const prevCard = dbRowToCard({
-    state: reviewItem.state as unknown as number,
+    state: reviewItem.state,
     stability: reviewItem.stability,
     difficulty: reviewItem.difficulty,
     reps: reviewItem.reps,
@@ -90,34 +95,41 @@ export async function POST(request: NextRequest) {
       userAnswer: body.userAnswer as never,
       isCorrect: grading.isCorrect,
       partialScore: grading.partialScore,
-      timeSpentSec: body.timeSpentSec ?? null,
+      timeSpentSec,
     },
   });
 
-  // 5. 可选：写 SessionAnswer
+  // 5. 可选：写 SessionAnswer（H-9 修复：upsert 避免重复计数）
   if (body.sessionId) {
     const session = await prisma.quizSession.findFirst({
       where: { id: body.sessionId, userId: auth.userId },
     });
     if (session) {
-      await prisma.sessionAnswer.create({
-        data: {
-          sessionId: session.id,
-          questionId: reviewItem.questionId,
-          userAnswer: body.userAnswer as never,
-          isCorrect: grading.isCorrect,
-          partialScore: grading.partialScore,
-          timeSpentSec: body.timeSpentSec ?? null,
-          gradedAt: new Date(),
-        },
+      // 先查是否已存在该题的 SessionAnswer，避免重复 increment
+      const existing = await prisma.sessionAnswer.findFirst({
+        where: { sessionId: session.id, questionId: reviewItem.questionId },
+        orderBy: { gradedAt: "desc" },
       });
-      await prisma.quizSession.update({
-        where: { id: session.id },
-        data: {
-          totalQuestions: { increment: 1 },
-          ...(grading.isCorrect ? { correctCount: { increment: 1 } } : {}),
-        },
-      });
+      if (!existing) {
+        await prisma.sessionAnswer.create({
+          data: {
+            sessionId: session.id,
+            questionId: reviewItem.questionId,
+            userAnswer: body.userAnswer as never,
+            isCorrect: grading.isCorrect,
+            partialScore: grading.partialScore,
+            timeSpentSec,
+            gradedAt: new Date(),
+          },
+        });
+        await prisma.quizSession.update({
+          where: { id: session.id },
+          data: {
+            totalQuestions: { increment: 1 },
+            ...(grading.isCorrect ? { correctCount: { increment: 1 } } : {}),
+          },
+        });
+      }
     }
   }
 

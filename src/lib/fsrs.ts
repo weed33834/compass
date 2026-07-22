@@ -50,9 +50,40 @@ export function buildScheduler(params?: Partial<FSRSParameters>) {
   return fsrs(buildParameters(params));
 }
 
+// Prisma CardState 字符串 ↔ ts-fsrs State 数字 枚举映射
+// C-1 修复：Prisma 存字符串 "NEW"/"LEARNING"/"REVIEW"/"RELEARNING"，
+// ts-fsrs 内部用数字 0/1/2/3 做分支判断，必须正确转换否则调度算法失效。
+const PRISMA_STATE_TO_TS: Record<string, State> = {
+  NEW: State.New,
+  LEARNING: State.Learning,
+  REVIEW: State.Review,
+  RELEARNING: State.Relearning,
+};
+const TS_STATE_TO_PRISMA: Record<number, "NEW" | "LEARNING" | "REVIEW" | "RELEARNING"> = {
+  [State.New]: "NEW",
+  [State.Learning]: "LEARNING",
+  [State.Review]: "REVIEW",
+  [State.Relearning]: "RELEARNING",
+};
+
+// Prisma CardState 字符串 → ts-fsrs State 数字
+export function statePrismaToTs(s: string): State {
+  const v = PRISMA_STATE_TO_TS[s];
+  if (v === undefined) {
+    // 未知状态兜底为 NEW（首答），避免调度崩溃
+    return State.New;
+  }
+  return v;
+}
+
+// ts-fsrs State 数字 → Prisma CardState 字符串
+export function stateTsToPrisma(s: State): "NEW" | "LEARNING" | "REVIEW" | "RELEARNING" {
+  return TS_STATE_TO_PRISMA[s] ?? "NEW";
+}
+
 // Prisma ReviewItem 行 → ts-fsrs Card（用于评分计算前）
 export function dbRowToCard(item: {
-  state: State;
+  state: string;
   stability: number;
   difficulty: number;
   reps: number;
@@ -70,7 +101,7 @@ export function dbRowToCard(item: {
     scheduled_days: item.scheduledDays,
     reps: item.reps,
     lapses: item.lapses,
-    state: item.state,
+    state: statePrismaToTs(item.state),
     last_review: item.lastReviewAt ?? undefined,
   } as Card;
 }
@@ -78,7 +109,7 @@ export function dbRowToCard(item: {
 // ts-fsrs Card → Prisma 更新数据（评分后写回）
 export function cardToDbUpdate(card: Card): Prisma.ReviewItemUpdateInput {
   return {
-    state: card.state as unknown as Prisma.ReviewItemUpdateInput["state"],
+    state: stateTsToPrisma(card.state),
     stability: card.stability,
     difficulty: card.difficulty,
     reps: card.reps,

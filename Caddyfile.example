@@ -1,0 +1,56 @@
+# Compass · Caddyfile 示例（自动 HTTPS 反向代理）
+#
+# 用法：
+#   1. 把 DOMAIN 改成你的实际域名
+#   2. 把 docker-compose.yml 中 caddy 服务取消注释
+#   3. docker compose up -d
+# Caddy 会自动申请 Let's Encrypt 证书并续期
+
+{
+	# 全局选项
+	email admin@example.com  # 改成你的邮箱，用于 Let's Encrypt 通知
+}
+
+compass.example.com {  # 改成你的域名
+	# 反代到 Compass app 容器
+	reverse_proxy app:3000 {
+		# 覆盖（而非追加）客户端可能伪造的代理头，防止 IP 伪造攻击
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	# 安全头
+	header {
+		# Content-Security-Policy：限制资源加载来源
+		# 注意：Next.js RSC 需要 'unsafe-inline'；如启用严格 CSP 需配合 nonce
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		# 移除暴露版本号的 header
+		-Server
+	}
+
+	# 压缩
+	encode gzip zstd
+
+	# 静态资源缓存
+	@static path /_next/static/* /favicon.ico /manifest.json /sw.js /icon-*.png
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	# 健康检查不记日志
+	@health path /api/health
+	log @health off
+
+	# 访问日志
+	log {
+		output file /data/access.log {
+			roll_size 100mb
+			roll_keep 7
+		}
+		format json
+	}
+}

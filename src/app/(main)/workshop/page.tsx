@@ -570,7 +570,7 @@ function ImportDialog({
         {/* 成功反馈（有告警时停留，无告警时对话框已关闭） */}
         {success && warnings.length > 0 && (
           <p className="rounded-md border border-f-emerald/30 bg-f-emerald/10 px-3 py-2 font-sans text-xs text-f-emerald">
-            已导入题库「{success.bankName}」共 {success.questionCount} 题。请查阅上方告警后点击"完成"。
+            已导入题库「{success.bankName}」共 {success.questionCount} 题。请查阅上方告警后点击&quot;完成&quot;。
           </p>
         )}
 

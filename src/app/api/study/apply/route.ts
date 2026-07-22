@@ -25,9 +25,10 @@ import {
   gradeCard,
   formatInterval,
   Rating,
+  stateTsToPrisma,
   type Grade,
 } from "@/lib/fsrs";
-import type { CardState, Rating as PrismaRating } from "@prisma/client";
+import type { Rating as PrismaRating } from "@prisma/client";
 
 interface ApplyBody {
   reviewItemId: string;
@@ -52,13 +53,6 @@ const GRADE_TO_PRISMA_RATING: Record<number, PrismaRating> = {
   4: "EASY",
 };
 
-const STATE_TO_PRISMA: Record<number, CardState> = {
-  0: "NEW",
-  1: "LEARNING",
-  2: "REVIEW",
-  3: "RELEARNING",
-};
-
 export async function POST(request: NextRequest) {
   const auth = await requireApiUser();
   if (auth.errorResponse) return auth.errorResponse;
@@ -78,6 +72,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "无效的 rating" }, { status: 400 });
   }
 
+  // C-3 修复：clamp timeSpentSec 到 [0, 3600]，防止恶意放大污染 FSRS 优化器训练数据
+  const timeSpentSec = body.timeSpentSec != null
+    ? Math.max(0, Math.min(3600, Math.floor(body.timeSpentSec)))
+    : null;
+
   // 取 ReviewItem（评分前状态）
   const reviewItem = await prisma.reviewItem.findFirst({
     where: { id: body.reviewItemId, userId: auth.userId },
@@ -87,9 +86,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "复习卡不存在" }, { status: 404 });
   }
 
+  // C-3 修复：幂等保护——5 分钟内不允许对同一卡重复 apply
+  // 正常流程：grade → apply 间隔通常 < 30 秒；超过 5 分钟视为过期/重复
+  if (reviewItem.lastReviewAt) {
+    const sinceLastReview = Date.now() - reviewItem.lastReviewAt.getTime();
+    if (sinceLastReview < 5 * 60 * 1000) {
+      // 已被 apply 过，返回当前状态而非重新调度
+      return NextResponse.json({
+        state: reviewItem.state,
+        reps: reviewItem.reps,
+        lapses: reviewItem.lapses,
+        stability: reviewItem.stability,
+        difficulty: reviewItem.difficulty,
+        dueAt: reviewItem.dueAt,
+        nextIntervalDays: reviewItem.scheduledDays,
+        nextIntervalLabel: formatInterval(reviewItem.scheduledDays),
+        appliedRating: body.rating,
+        idempotent: true,
+      });
+    }
+  }
+
   // FSRS 调度：基于评分前的 Card 状态 + 用户选择的评分
   const prevCard = dbRowToCard({
-    state: reviewItem.state as unknown as number,
+    state: reviewItem.state,
     stability: reviewItem.stability,
     difficulty: reviewItem.difficulty,
     reps: reviewItem.reps,
@@ -114,7 +134,7 @@ export async function POST(request: NextRequest) {
     const item = await tx.reviewItem.update({
       where: { id: reviewItem.id },
       data: {
-        state: STATE_TO_PRISMA[newCard.state] ?? "REVIEW",
+        state: stateTsToPrisma(newCard.state),
         stability: newCard.stability,
         difficulty: newCard.difficulty,
         reps: newCard.reps,
@@ -139,14 +159,14 @@ export async function POST(request: NextRequest) {
         reviewItemId: reviewItem.id,
         userId: auth.userId,
         rating: GRADE_TO_PRISMA_RATING[grade] ?? "AGAIN",
-        state: reviewItem.state, // 评分前的 state
+        state: reviewItem.state, // 评分前的 state（字符串）
         prevStability: reviewItem.stability,
         prevDifficulty: reviewItem.difficulty,
         prevDueAt: reviewItem.dueAt,
         prevElapsedDays: reviewItem.elapsedDays,
         prevScheduledDays: reviewItem.scheduledDays,
         reviewedAt: now,
-        reviewDurationMs: body.timeSpentSec ? body.timeSpentSec * 1000 : null,
+        reviewDurationMs: timeSpentSec != null ? timeSpentSec * 1000 : null,
       },
     });
 

@@ -2,6 +2,47 @@
 
 All notable changes to Compass are documented in this file. This project adheres to [Semantic Versioning](https://semver.org/) and [Conventional Commits](https://www.conventionalcommits.org/).
 
+## V1.4.1 — 2026-07-22
+
+### Fixed — Critical（阻断核心功能）
+
+- **C-1 FSRS 调度失效**（`src/lib/fsrs.ts`）：Prisma 存字符串 enum（`NEW`/`LEARNING`/`REVIEW`/`RELEARNING`），ts-fsrs 内部用数字 `State`（0/1/2/3）做分支判断。原代码 `state as unknown as number` 绕过类型检查但运行时仍是字符串，导致 `card.state === State.New`（`"NEW" === 0`）永远为 false，FSRS 调度算法完全失效。新增 `statePrismaToTs()` / `stateTsToPrisma()` 双向转换函数，`dbRowToCard()` 接受字符串 state 输出数字 state，`cardToDbUpdate()` 反向转换；移除所有 `as unknown as number` 断言。同步修复 `grade/route.ts` 和 `apply/route.ts` 中的同类问题。
+- **C-2 题库删除外键约束失败**（`prisma/schema.prisma`）：`AnswerRecord.question` / `AnswerRecord.bank`、`SessionAnswer.question`、`ReviewItem.bank` 未声明 `onDelete`，默认 Restrict，有答题记录的题库无法删除（500 错误）。补全 `onDelete: Cascade`，新增迁移 `20260722000001_fix_fk_cascade`。
+- **C-3 apply 无幂等保护**（`src/app/api/study/apply/route.ts`）：不校验是否刚调用过 grade，可跳过答题直接 apply 或重复 apply，间隔被指数级放大。新增基于 `lastReviewAt` 的 5 分钟幂等检查，重复 apply 返回当前状态并标记 `idempotent: true`。
+
+### Fixed — High（数据正确性 / 性能 / 安全）
+
+- **H-4 analytics N+1 查询**（`src/app/api/analytics/route.ts`）：连续天数计算最坏 365 次串行 `count` 查询。改为单次 `findMany` + 内存分桶到 `Set<string>`，查询数从 N+1 降到 1。
+- **H-5 memoryCards 无 limit**（`src/app/api/analytics/route.ts`）：全表回传可能 OOM。加 `take: 5000` 上限。
+- **H-7 IP 信任链安全**（`src/lib/client-ip.ts`）：`x-real-ip` / `x-forwarded-for` 可被客户端伪造。新增 `TRUSTED_PROXY_IPS` 环境变量白名单机制，仅当直连 IP 在白名单内才信任代理头；未配置时仅 dev 信任代理头，生产环境必须显式配置。
+- **H-8 错题本 errorReason 丢弃**（`src/app/api/wrongbook/route.ts`）：PATCH 写入的 `errorReason` 没有落库。改为写入最近一条答错的 `AnswerRecord.errorReason`。
+- **H-9 grade 重复计数**（`src/app/api/study/grade/route.ts`）：同一 `(sessionId, questionId)` 无唯一约束，重复 grade 导致 `totalQuestions` / `correctCount` 双倍计数。create 前先 `findFirst` 检查是否已存在，已存在则跳过计数。
+- **H-3 timeSpentSec 越界**（`grade` + `apply`）：未限制范围，恶意请求可传超大值污染统计。clamp 到 `[0, 3600]`。
+- **M-11 forgot-password 错误码**（`src/app/api/auth/forgot-password/route.ts`）：catch 块返回 400（客户端错误），实际是服务端异常。改为 500。
+
+### Added — 部署与可观测
+
+- **`Dockerfile`**：3 阶段构建（deps → builder → runner），`node:20-alpine`，非 root 用户，`tini` 作 init，`HEALTHCHECK` 指向 `/api/health`，Next.js standalone 输出。
+- **`docker-compose.yml`**：`db`（postgres:17-alpine）+ `app`（build from Dockerfile）+ 可选 `caddy`（自动 HTTPS 反代），含 healthcheck 和数据卷持久化。
+- **`docker-entrypoint.sh`**：等 DB 可达（60s）→ `prisma migrate deploy` → `exec server`。
+- **`src/app/api/health/route.ts`**：Docker / K8s 容器探活端点，GET → 200 `{status:"ok",db:"ok"}` 或 503 `{status:"degraded",db:"down"}`。
+- **`Caddyfile.example`**：自动 HTTPS 反代 + CSP 安全头 + 静态资源缓存 + 访问日志。
+- **`.dockerignore`**：排除 node_modules / .next / .git / tests / screenshots。
+- **`.env.example` 更新**：新增 `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` / `APP_PORT` / `TRUSTED_PROXY_IPS` 等 Docker Compose 与安全相关变量。
+
+### Added — 单元测试（49 个，CI 必跑）
+
+- **`scripts/fsrs-test.ts`（19 个）**：Prisma 字符串 enum ↔ ts-fsrs 数字 State 双向转换、`dbRowToCard` / `cardToDbUpdate`、`gradeCard` 调度、`previewIntervals`、`formatInterval`、`scoreToRating` 映射。直接覆盖 C-1 修复点。
+- **`scripts/grading-test.ts`（13 个）**：4 题型判分——单选 / 多选（漏选部分给分 + 错选 0 分）/ 判断（中英文布尔归一化）/ 填空（多空 + `|` 等价答案 + 全角转半角 + 折叠空白）。
+- **`package.json` 新增脚本**：`test:grading` / `test:fsrs` / `test:unit`（= grading + fsrs + parser）。
+
+### Changed — CI 加固
+
+- **`.github/workflows/ci.yml`**：build job 新增 "Unit tests（判分 + FSRS + 解析器）"步骤（`pnpm test:unit`）；新增 `docker-build` job（仅 push to main 触发）验证 Dockerfile 可构建。
+- **`README.md`**：新增 "Docker 一键部署" 段落 + "测试" 段落 + CI 策略说明；命令速查表补全 `test:unit` / `test:grading` / `test:fsrs` / `test:parser`；路线图新增 V1.4.1 段。
+
+---
+
 ## V1.4.0 — 2026-07-22
 
 ### Added — 官方题库按需加载

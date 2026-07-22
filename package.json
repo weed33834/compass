@@ -1,6 +1,6 @@
 {
   "name": "compass",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": false,
   "description": "Compass · 自托管的间隔重复刷题工具，以航海仪器为美学隐喻，基于 FSRS-6 算法",
   "license": "MIT",
@@ -42,6 +42,9 @@
     "typecheck": "tsc --noEmit",
     "test:api": "tsx scripts/api-test.ts",
     "test:parser": "tsx scripts/parser-test.ts",
+    "test:grading": "tsx scripts/grading-test.ts",
+    "test:fsrs": "tsx scripts/fsrs-test.ts",
+    "test:unit": "tsx scripts/grading-test.ts && tsx scripts/fsrs-test.ts && tsx scripts/parser-test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

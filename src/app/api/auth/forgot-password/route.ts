@@ -72,9 +72,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[forgot-password] 处理失败:", error);
+    // M-11 修复：服务端异常应返回 500 而非 400（400 是客户端请求错误）
     return NextResponse.json(
       { error: "处理失败，请稍后再试" },
-      { status: 400 }
+      { status: 500 }
     );
   }
 }
