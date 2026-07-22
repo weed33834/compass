@@ -11,7 +11,7 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
 
 # 仅复制清单文件，最大化缓存命中
-# pnpm-workspace.yaml 含 onlyBuiltDependencies 白名单，缺失会报 ERR_PNPM_IGNORED_BUILDS
+# pnpm-workspace.yaml 含 allowBuilds 白名单（pnpm 11 用法），缺失会报 ERR_PNPM_IGNORED_BUILDS
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
@@ -46,7 +46,8 @@ RUN pnpm build
 
 # ===== Stage 3: runner =====
 FROM node:22-alpine AS runner
-RUN apk add --no-cache libc6-compat openssl tini
+# netcat-openbsd: docker-entrypoint.sh 用 nc -z 探测 DB 端口可达
+RUN apk add --no-cache libc6-compat openssl tini netcat-openbsd
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -57,17 +58,19 @@ ENV HOSTNAME=0.0.0.0
 # 非 root 用户运行
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
+
+# Prisma CLI 仅用于容器启动时执行 prisma migrate deploy。
+# standalone 输出只含运行时依赖（@prisma/client + 生成的 .prisma/client），
+# 但 prisma CLI 是 devDependency 不会被打进 standalone，需单独装。
+# 必须在 USER nextjs 之前装（npm install -g 需要 root）。
+RUN npm install --global prisma@5.22.0
+
 USER nextjs
 
-# 拷贝 standalone 产物（含 node_modules 精简版）
+# 拷贝 standalone 产物（已含 @prisma/client 运行时 + .pnpm 嵌套结构 + 生成的客户端）
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-
-# Prisma 客户端运行时依赖
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 
 # 迁移文件（容器启动时执行 prisma migrate deploy）
 COPY --chown=nextjs:nodejs prisma ./prisma

@@ -34,7 +34,8 @@ for i in $(seq 1 $MAX_RETRIES); do
 done
 
 echo "[entrypoint] 执行 prisma migrate deploy..."
-npx prisma migrate deploy
+# prisma CLI 在 Dockerfile runner 阶段已 npm install --global 安装
+prisma migrate deploy
 
 echo "[entrypoint] 启动 server: $@"
 exec "$@"

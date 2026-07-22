@@ -22,13 +22,21 @@ All notable changes to Compass are documented in this file. This project adheres
 
 ### Added — 部署与可观测
 
-- **`Dockerfile`**：3 阶段构建（deps → builder → runner），`node:20-alpine`，非 root 用户，`tini` 作 init，`HEALTHCHECK` 指向 `/api/health`，Next.js standalone 输出。
+- **`Dockerfile`**：3 阶段构建（deps → builder → runner），`node:22-alpine`（pnpm 11 要求 Node ≥22.13），非 root 用户，`tini` 作 init，`HEALTHCHECK` 指向 `/api/health`，Next.js standalone 输出。
 - **`docker-compose.yml`**：`db`（postgres:17-alpine）+ `app`（build from Dockerfile）+ 可选 `caddy`（自动 HTTPS 反代），含 healthcheck 和数据卷持久化。
 - **`docker-entrypoint.sh`**：等 DB 可达（60s）→ `prisma migrate deploy` → `exec server`。
 - **`src/app/api/health/route.ts`**：Docker / K8s 容器探活端点，GET → 200 `{status:"ok",db:"ok"}` 或 503 `{status:"degraded",db:"down"}`。
 - **`Caddyfile.example`**：自动 HTTPS 反代 + CSP 安全头 + 静态资源缓存 + 访问日志。
 - **`.dockerignore`**：排除 node_modules / .next / .git / tests / screenshots。
 - **`.env.example` 更新**：新增 `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` / `APP_PORT` / `TRUSTED_PROXY_IPS` 等 Docker Compose 与安全相关变量。
+
+### Fixed — Docker 构建（CI docker-build job 全绿）
+
+- **`pnpm` 版本冲突**（`.github/workflows/ci.yml`）：`pnpm/action-setup@v4` 同时指定 `version` 与 `package.json` 的 `packageManager` 字段触发 `ERR_PNPM_BAD_PM_VERSION`。移除 action 的 `version` 参数，由 `packageManager` 字段驱动。
+- **Node 20 → 22 升级**：pnpm 11.13.1 是纯 ESM，依赖 `node:sqlite` 内置模块，要求 Node ≥22.13。CI `node-version` 20→22；Dockerfile 3 阶段 `node:20-alpine`→`node:22-alpine`；`package.json` `engines` ≥20→≥22.13；README badge 同步。
+- **`ERR_PNPM_IGNORED_BUILDS`**（`pnpm-workspace.yaml` + `Dockerfile`）：pnpm 11 `strictDepBuilds` 默认 true，未被 `allowBuilds` 放行的构建脚本会硬失败。`pnpm-workspace.yaml` 从 v10 的 `onlyBuiltDependencies`（已移除）改为 v11 的 `allowBuilds` 映射；Dockerfile deps 阶段补充 `COPY pnpm-workspace.yaml`。
+- **Prisma COPY 路径错误**（`Dockerfile` runner 阶段）：pnpm 嵌套结构下 `node_modules/.prisma` / `@prisma` / `prisma` 不在根级，3 行 COPY 全部 `not found`。standalone 输出已含 `@prisma/client` 运行时 + 生成的 `.prisma/client`（经 Next.js 依赖追踪），移除冗余 COPY；`prisma` CLI 是 devDependency 不在 standalone 中，改为 runner 阶段 `npm install --global prisma@5.22.0`；entrypoint 由 `npx prisma` 改为直接 `prisma`；`apk add` 补 `netcat-openbsd`（entrypoint 的 `nc -z` DB 端口探测需要）。
+- **构建时占位环境变量**（`Dockerfile` builder 阶段）：`next build` 静态分析读取 `DATABASE_URL` / `NEXTAUTH_URL` / `NEXTAUTH_SECRET`，缺失会告警。新增 `ARG` 占位变量，CI 可通过 `--build-arg` 覆盖。
 
 ### Added — 单元测试（49 个，CI 必跑）
 
