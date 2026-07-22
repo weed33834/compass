@@ -31,6 +31,15 @@ RUN npx prisma generate
 # Next.js 采集遥测关闭
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# 构建时占位环境变量（next build 静态分析会读取，不需要真实 DB 连接）
+# CI / docker build 可通过 --build-arg 覆盖
+ARG DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public
+ARG NEXTAUTH_URL=http://localhost:3000
+ARG NEXTAUTH_SECRET=placeholder-secret-not-used-in-runtime
+ENV DATABASE_URL=$DATABASE_URL
+ENV NEXTAUTH_URL=$NEXTAUTH_URL
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+
 # 构建生产产物（output: 'standalone' 在 next.config.mjs 中已启用）
 RUN pnpm build
 
