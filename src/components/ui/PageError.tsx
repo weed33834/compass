@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/Button";
+import { Illustration } from "@/components/Illustration";
 
 interface PageErrorProps {
   title: string;
@@ -24,6 +25,7 @@ export function PageError({ title, description, error, reset, logLabel, fullScre
 
   return (
     <div className={containerClass}>
+      <Illustration name="not-found" className="h-40 w-40 text-coral/50" />
       <div className="space-y-2">
         <h2 className="font-serif text-2xl text-ivory">{title}</h2>
         <p className="max-w-md text-sm text-ivory/60">{description}</p>

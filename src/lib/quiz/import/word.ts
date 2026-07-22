@@ -12,6 +12,67 @@
 import mammoth from "mammoth";
 import { parseMarkdown } from "./markdown";
 
+// 把"无 --- 分隔的纯编号文本"转成 markdown 风格（## 题型 + --- 分隔）
+// 导出以便单元测试：无需 mammoth 即可验证预处理逻辑
+//
+// 关键：题型标题（## 单选题）必须与"紧随其后的题目"在同一个 --- 块内，
+// 否则标题会泄漏到前一个题块，导致题型错配。
+export function preprocessWordText(text: string): string {
+  const typeRegex = /^\s*(单选题|单选|多选题|多选|判断题|判断|填空题|填空)\s*[:：]?\s*$/m;
+  const lines = text.split(/\r?\n/);
+  const out: string[] = [];
+  let lastWasEmpty = false;
+  // 上一行是否是 ## 题型标题——若是，则下一个"第N题"不插 ---（让标题与题目同块）
+  let lastWasTypeHeader = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (trimmed === "") {
+      if (!lastWasEmpty) {
+        out.push("");
+        lastWasEmpty = true;
+      }
+      continue;
+    }
+    // 题型行 → ## 标题，前面插 --- 与前一题块分隔
+    const typeMatch = trimmed.match(typeRegex);
+    if (typeMatch) {
+      if (out.length > 0) {
+        const lastNonEmpty = [...out].reverse().find((l) => l.trim() !== "");
+        if (lastNonEmpty && lastNonEmpty !== "---") {
+          out.push("---");
+          out.push("");
+        }
+      }
+      out.push(`## ${typeMatch[1]}`);
+      lastWasEmpty = false;
+      lastWasTypeHeader = true;
+      continue;
+    }
+    // 题号开头："1. xxx" / "Q1. xxx" / "第 1 题：xxx" / "第1题: xxx" / "第1题、 xxx"
+    // 旧 bug 1：原正则 [:：]、 强制要求"冒号+顿号"同时出现，导致 "第1题：xxx" 无法识别
+    //           修复：[:：、]? 让三种分隔符（: ： 、）均可选
+    // 旧 bug 2：原条件 lastWasEmpty === false 反了——题号通常在空行之后（题块边界），
+    //           导致分隔符从未插入，所有题合并成一题。修复：只要前面有内容就插入 ---
+    // 旧 bug 3：题型标题（## 多选题）会泄漏到前一题块，导致题型错配。
+    //           修复：若上一行是 ## 题型标题，则不插 ---（让标题与题目同块）
+    const numMatch = trimmed.match(/^(?:第\s*\d+\s*题[:：、]?\s*)|(?:Q\d+[.):]\s*)|(?:\d+[.):、]\s*)/);
+    if (numMatch && out.length > 0 && !lastWasTypeHeader) {
+      const lastLine = out[out.length - 1];
+      if (lastLine !== "---") {
+        out.push("---");
+        out.push("");
+      }
+    }
+    out.push(line);
+    lastWasEmpty = false;
+    lastWasTypeHeader = false;
+  }
+
+  return out.join("\n");
+}
+
 export async function parseWord(buffer: Buffer): Promise<{
   questions: import("./index").ParsedQuestion[];
   warnings: string[];
@@ -27,46 +88,7 @@ export async function parseWord(buffer: Buffer): Promise<{
 
   // 否则按"空行分块" + 题型识别行 来解析
   const warnings: string[] = [];
-
-  // 把 Word 文本转成 Markdown 风格再复用 markdown 解析器：
-  // - 把"单选题"、"多选题"等独立行替换为 "## 单选题"
-  // - 用 --- 分隔每个题块
-  const typeRegex = /^\s*(单选题|单选|多选题|多选|判断题|判断|填空题|填空)\s*[:：]?\s*$/m;
-  const lines = text.split(/\r?\n/);
-  const out: string[] = [];
-  let lastWasEmpty = false;
-  let titleInsertedForBlock = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    if (trimmed === "") {
-      if (!lastWasEmpty) {
-        out.push("");
-        lastWasEmpty = true;
-        titleInsertedForBlock = false;
-      }
-      continue;
-    }
-    // 题型行 → ## 标题
-    const typeMatch = trimmed.match(typeRegex);
-    if (typeMatch) {
-      out.push(`## ${typeMatch[1]}`);
-      lastWasEmpty = false;
-      continue;
-    }
-    // 题号开头："1. xxx" / "Q1. xxx" / "第 1 题：xxx"
-    const numMatch = trimmed.match(/^(?:第\s*\d+\s*题[:：]、\s*)|(?:Q\d+[.):]\s*)|(?:\d+[.):、]\s*)/);
-    if (numMatch && !titleInsertedForBlock && lastWasEmpty === false && out.length > 0) {
-      // 题号开头视为新题开始，插入分隔
-      out.push("---");
-      out.push("");
-    }
-    out.push(line);
-    lastWasEmpty = false;
-  }
-
-  const mdText = out.join("\n");
+  const mdText = preprocessWordText(text);
   const parsed = await parseMarkdown(mdText);
   return { questions: parsed.questions, warnings: [...warnings, ...parsed.warnings] };
 }

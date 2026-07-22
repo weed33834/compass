@@ -19,6 +19,7 @@ import { useSearchParams } from "next/navigation";
 import { Star, Clock, ArrowRight, RotateCcw, CheckCircle2, XCircle, Anchor, History } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/Button";
+import { Illustration } from "@/components/Illustration";
 import { AnswerInput } from "./AnswerInput";
 import { RatingBar } from "./RatingBar";
 import {
@@ -458,7 +459,7 @@ function StudyContent() {
   if (!currentItem) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-12 text-center">
-        <Anchor className="mx-auto h-12 w-12 text-brass/50" />
+        <Illustration name="empty-study" className="mx-auto h-44 w-44 text-brass/50" />
         <h2 className="mt-4 font-serif text-2xl text-ivory">今日队列已清空</h2>
         <p className="mt-2 font-sans text-sm text-starlight">
           没有到期复习，也没有新卡配额。先去题库添加题目，或稍后再来。
@@ -748,10 +749,8 @@ function CompletionReport({
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
       {/* 主标题卡 */}
       <div className="overflow-hidden rounded-2xl border border-brass/30 bg-gradient-to-br from-brass/10 via-abyss-50/40 to-abyss-700/40 p-8 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-f-emerald/40 bg-f-emerald/10">
-          <CheckCircle2 className="h-9 w-9 text-f-emerald" />
-        </div>
-        <h2 className="mt-5 font-serif text-3xl text-ivory">
+        <Illustration name="celebrate" className="mx-auto h-28 w-28 text-brass/60" />
+        <h2 className="mt-3 font-serif text-3xl text-ivory">
           {mode === "WRONG_REDO" ? "错题重做完成" : "本轮答题完成"}
         </h2>
         <p className="mt-2 font-sans text-sm text-starlight">

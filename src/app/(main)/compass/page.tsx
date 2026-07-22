@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/Button";
+import { Illustration } from "@/components/Illustration";
 
 interface BankListItem {
   id: string;
@@ -131,9 +132,7 @@ export default function CompassPage() {
             <X className="h-4 w-4" />
           </button>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-brass/40 bg-brass/10">
-              <Sparkles className="h-7 w-7 text-brass" />
-            </div>
+            <Illustration name="welcome-captain" className="h-20 w-20 shrink-0 text-brass/70" />
             <div className="flex-1">
               <h2 className="font-serif text-xl text-ivory">欢迎登船，航海者</h2>
               <p className="mt-1.5 font-sans text-sm leading-relaxed text-starlight">
@@ -378,7 +377,7 @@ function BankMiniCard({ bank }: { bank: BankListItem }) {
 function EmptyFleet() {
   return (
     <div className="rounded-2xl border border-dashed border-starlight/20 bg-abyss-50/20 p-10 text-center">
-      <Ship className="mx-auto h-10 w-10 text-brass/50" />
+      <Illustration name="empty-fleet" className="mx-auto h-40 w-40 text-brass/50" />
       <h3 className="mt-3 font-serif text-lg text-ivory">还没有题库</h3>
       <p className="mt-1 font-sans text-xs text-starlight">
         先去造船工坊创建一个题库，或从文件导入

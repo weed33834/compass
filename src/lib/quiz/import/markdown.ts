@@ -99,7 +99,13 @@ function parseLabeledLine(line: string, label: string): string | null {
 }
 
 // 把"AC" / "A,C" / "A、C" 拆成 ["A","C"]
+// 支持：连续字母无分隔符（"ABCD"→["A","B","C","D"]）、逗号/顿号/空格分隔
 function splitMultiAnswer(s: string): string[] {
+  const v = s.trim().toUpperCase();
+  // 纯连续字母（无分隔符）：常见于 "AB" / "ACD" 等多选答案写法
+  if (/^[A-Z]+$/.test(v)) {
+    return v.split("");
+  }
   return s
     .split(/[,，、\s]+/)
     .map((x) => x.trim().toUpperCase())
@@ -224,6 +230,20 @@ export async function parseMarkdown(content: string): Promise<Omit<ParseResult, 
       if (type === "SINGLE_CHOICE" && answerKeys.length > 1) {
         warnings.push(`位置 ${position + 1} 标为单选但答案有多个，仅取第一个`);
       }
+      // 答案不在选项中：标记为"未知正确答案"，避免静默丢失正确性
+      if (answerKeys.length > 0 && options.length > 0) {
+        const optionKeys = options.map((o) => o.key);
+        const missing = answerKeys.filter((k) => !optionKeys.includes(k));
+        if (missing.length > 0) {
+          warnings.push(
+            `位置 ${position + 1} 答案 "${missing.join(",")}" 不在选项 ${optionKeys.join("/")} 中，请检查题号或选项是否漏写`
+          );
+        }
+      }
+      // 缺少答案：给出明确告警（不阻止导入，让用户自查）
+      if (answerKeys.length === 0 && !labels.answer) {
+        warnings.push(`位置 ${position + 1} 选择题缺少"答案：X"行`);
+      }
       finalAnswer = type === "SINGLE_CHOICE" ? (answerKeys[0] ?? "") : answerKeys;
       // 标记正确选项
       finalOptions = finalOptions.map((o) => ({
@@ -233,7 +253,13 @@ export async function parseMarkdown(content: string): Promise<Omit<ParseResult, 
     } else if (type === "TRUE_FALSE") {
       const b = parseBooleanAnswer(labels.answer ?? "");
       if (b === null) {
-        warnings.push(`位置 ${position + 1} 判断题答案无法识别："${labels.answer}"`);
+        // 答案无法识别：旧实现仍保存 null，但答题时无法判分（判分逻辑会把 null 当错）
+        // 改为：跳过该题并告警，避免静默保存无法判分的题目
+        warnings.push(
+          `位置 ${position + 1} 判断题答案无法识别："${labels.answer ?? "(空)"}"，已跳过该题`
+        );
+        position++;
+        continue;
       }
       finalOptions = [
         { key: "T", text: "正确", correct: b === true },

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import { Input } from '@/components/ui/Input';
 import { CompassRose } from '@/components/CompassRose';
+import { Illustration } from '@/components/Illustration';
 import { useTranslation } from '@/components/i18n/useTranslation';
 import { apiFetch } from '@/lib/api-fetch';
 import { AuthLanguageSwitcher } from '@/components/i18n/AuthLanguageSwitcher';
@@ -94,14 +95,24 @@ export default function RegisterPage() {
       {/* 背景罗盘装饰 */}
       <CompassRose className="animate-spin-slow pointer-events-none absolute left-1/2 top-1/2 h-[125vmin] w-[125vmin] -translate-x-1/2 -translate-y-1/2 text-starlight opacity-[0.05]" />
 
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-starlight/15 bg-abyss-50/40 p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-sm sm:p-10">
-        <div className="absolute right-3 top-3">
-          <AuthLanguageSwitcher />
+      <div className="relative z-10 flex w-full max-w-4xl flex-col items-center gap-8 sm:flex-row sm:items-stretch">
+        {/* 左侧插画（≥sm 显示） */}
+        <div className="hidden flex-1 items-center justify-center sm:flex">
+          <Illustration name="auth-register" className="h-72 w-72 text-brass/60" />
         </div>
-        <div className="mb-8 text-center sm:pr-16">
-          <h1 className="font-serif text-3xl text-ivory sm:text-4xl">{t('auth', 'registerTitle')}</h1>
-          <p className="mt-2 font-sans text-sm text-starlight">{t('auth', 'registerSubtitle')}</p>
-        </div>
+
+        <div className="w-full rounded-2xl border border-starlight/15 bg-abyss-50/40 p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-sm sm:max-w-md sm:p-10">
+          <div className="absolute right-3 top-3">
+            <AuthLanguageSwitcher />
+          </div>
+          {/* 移动端顶部小插画 */}
+          <div className="mb-4 flex justify-center sm:hidden">
+            <Illustration name="auth-register" className="h-24 w-24 text-brass/60" />
+          </div>
+          <div className="mb-8 text-center sm:pr-16">
+            <h1 className="font-serif text-3xl text-ivory sm:text-4xl">{t('auth', 'registerTitle')}</h1>
+            <p className="mt-2 font-sans text-sm text-starlight">{t('auth', 'registerSubtitle')}</p>
+          </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <Input
@@ -188,6 +199,7 @@ export default function RegisterPage() {
             {t('auth', 'signIn')}
           </Link>
         </p>
+        </div>
       </div>
     </main>
   );

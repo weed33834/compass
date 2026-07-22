@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/Button";
+import { Illustration } from "@/components/Illustration";
 
 interface WrongItem {
   reviewItemId: string;
@@ -279,7 +280,7 @@ export default function WrongbookPage() {
 function EmptyBottle() {
   return (
     <div className="rounded-2xl border border-dashed border-starlight/20 bg-abyss-50/20 p-12 text-center">
-      <Inbox className="mx-auto h-12 w-12 text-f-emerald/50" />
+      <Illustration name="empty-wrongbook" className="mx-auto h-44 w-44 text-f-emerald/50" />
       <h2 className="mt-3 font-serif text-2xl text-ivory">瓶中无错题</h2>
       <p className="mt-2 font-sans text-sm text-starlight">
         坚持答题，错题会自动漂入瓶中等待重做

@@ -1,0 +1,5 @@
+type,stem,options,answer,explanation,difficulty,knowledge,source
+单选题,下列哪种算法是 Compass 使用的间隔重复算法？,A. SM-2|B. FSRS-6|C. Anki|D. SuperMemo,B,FSRS-6 是 ts-fsrs 实现,3,算法,Compass 文档
+多选题,下列哪些是 Compass 支持的导入格式？,A. Markdown|B. Excel|C. Word (.docx)|D. PDF,ABC,PDF 暂不支持,,导入,
+判断题,FSRS 算法会根据用户的回忆评分动态调整复习间隔。,,正确,基于 DSR 模型,,FSRS,
+填空题,中国的首都是____。,,北京,,,

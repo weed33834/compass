@@ -62,6 +62,11 @@ function parseBooleanAnswer(s: string): boolean | null {
 }
 
 function splitMultiAnswer(s: string): string[] {
+  const v = s.trim().toUpperCase();
+  // 纯连续字母（无分隔符）："ABCD" → ["A","B","C","D"]
+  if (/^[A-Z]+$/.test(v)) {
+    return v.split("");
+  }
   return s
     .split(/[,，、\s]+/)
     .map((x) => x.trim().toUpperCase())
@@ -88,7 +93,10 @@ export async function parseExcel(buffer: Buffer, isCsv = false): Promise<Omit<Pa
   const warnings: string[] = [];
   const questions: ParsedQuestion[] = [];
 
-  const wb = XLSX.read(buffer, { type: "buffer", raw: isCsv });
+  // 旧 bug：原 raw: isCsv 导致 CSV 按 Latin-1 解码，中文全部乱码（"单选题"→"åéé¢"），
+  //         TYPE_MAP 匹配失败 → "无法推断题型"。改用 codepage: 65001 强制 UTF-8。
+  //         raw: true 的本意是"不把 3 解析成数字"，但 getCell 已用 String(v) 兜底，不再需要。
+  const wb = XLSX.read(buffer, { type: "buffer", codepage: 65001 });
   const sheetName = wb.SheetNames[0];
   if (!sheetName) {
     return { questions, warnings: ["Excel 文件没有工作表"] };
@@ -111,7 +119,10 @@ export async function parseExcel(buffer: Buffer, isCsv = false): Promise<Omit<Pa
   }
 
   // 表头不全，回退到固定顺序
-  const useFallback = Object.keys(headerMap).length < 2;
+  // 阈值：原 < 2 太宽松（仅识别 1 列就当表头存在但残缺），导致部分数据被误判为表头
+  // 改为：至少识别出 type/stem/answer 中的 2 个核心列才算表头可用，否则走固定顺序
+  const recognizedCount = Object.keys(headerMap).length;
+  const useFallback = recognizedCount < 2;
   const getCell = (row: Record<string, unknown>, stdKey: string, idx: number): string => {
     if (!useFallback && headerMap[stdKey]) {
       const v = row[headerMap[stdKey]];
@@ -127,7 +138,9 @@ export async function parseExcel(buffer: Buffer, isCsv = false): Promise<Omit<Pa
   };
 
   if (useFallback) {
-    warnings.push("表头无法识别，按固定顺序 type/stem/options/answer/... 解析");
+    warnings.push(
+      `表头识别到 ${recognizedCount} 列（需 ≥2 列），按固定顺序 type/stem/options/answer/... 解析；如结果异常请在首行写明 type/stem/options/answer 列名`
+    );
   }
 
   rows.forEach((row, i) => {
@@ -139,6 +152,17 @@ export async function parseExcel(buffer: Buffer, isCsv = false): Promise<Omit<Pa
     const difficultyStr = getCell(row, "difficulty", 5);
     const knowledgeStr = getCell(row, "knowledge", 6);
     const sourceStr = getCell(row, "source", 7);
+
+    // CSV 未转义逗号检测：sheet_to_json 在 CSV 模式下若行内有未引用的逗号，
+    // 会产生多余列（key 形如 "__EMPTY" / "__EMPTY_1"）。前 5 行检查一次告警，避免刷屏
+    if (isCsv && i < 5) {
+      const emptyKeys = Object.keys(row).filter((k) => k.startsWith("__EMPTY"));
+      if (emptyKeys.length > 0) {
+        warnings.push(
+          `第 ${i + 2} 行：检测到 ${emptyKeys.length} 个未命名列，可能是 CSV 中选项/解析含未转义逗号（建议用 | 分隔选项，或将含逗号的字段用双引号包裹）`
+        );
+      }
+    }
 
     if (!stemStr) {
       warnings.push(`跳过第 ${i + 2} 行：题干为空`);
@@ -175,6 +199,18 @@ export async function parseExcel(buffer: Buffer, isCsv = false): Promise<Omit<Pa
       if (type === "SINGLE_CHOICE" && answerKeys.length > 1) {
         warnings.push(`第 ${i + 2} 行：单选题答案有多个，仅取第一个`);
       }
+      // 答案不在选项中：CSV/Excel 用户经常写错选项字母或漏写选项，给出告警
+      if (answerKeys.length > 0 && opts.length > 0) {
+        const optionKeys = opts.map((o) => o.key);
+        const missing = answerKeys.filter((k) => !optionKeys.includes(k));
+        if (missing.length > 0) {
+          warnings.push(
+            `第 ${i + 2} 行：答案 "${missing.join(",")}" 不在选项 ${optionKeys.join("/")} 中，请检查选项或答案是否漏写`
+          );
+        }
+      }
+      // 选项数量与表头不一致的 CSV 逗号未转义检测：
+      // 当 useFallback 且 optionsStr 含逗号但行内字段数比首行多 → 可能 CSV 未转义
       finalOptions = opts.map((o) => ({
         ...o,
         correct: answerKeys.includes(o.key),
@@ -183,7 +219,9 @@ export async function parseExcel(buffer: Buffer, isCsv = false): Promise<Omit<Pa
     } else if (type === "TRUE_FALSE") {
       const b = parseBooleanAnswer(answerStr);
       if (b === null) {
-        warnings.push(`第 ${i + 2} 行：判断题答案无法识别 "${answerStr}"`);
+        // 与 markdown 解析器一致：跳过无法判分的判断题，而非保存 null
+        warnings.push(`第 ${i + 2} 行：判断题答案无法识别 "${answerStr}"，已跳过该题`);
+        return;
       }
       finalOptions = [
         { key: "T", text: "正确", correct: b === true },

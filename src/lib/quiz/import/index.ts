@@ -39,13 +39,51 @@ export interface ParseOptions {
   defaultBankName?: string;
 }
 
+// .doc（旧版 Word 二进制）无法用 mammoth 解析，仅支持 .docx
+// 早期发现，给出明确错误，避免后续抛"未知格式"或解析失败
+function isLegacyDoc(name: string): boolean {
+  return name.endsWith(".doc") && !name.endsWith(".docx");
+}
+
+// 二进制伪装成文本检测：.md/.txt/.csv 文件含 NUL 字节 → 视为二进制
+// 使用 git 同款启发式（前 8KB 内出现 NUL 即判为二进制）：
+//   - NUL 字节在 UTF-8 文本中几乎不会出现（除了 BOM 之外的合法文本都不含 0x00）
+//   - 但在 PNG/DOC/ZIP 等二进制中很常见
+// 旧实现的"不可打印字节占比"会误伤含中文/弯引号的多字节 UTF-8 文本（continuation byte 0x80-0xBF 被误判），已弃用
+function looksBinary(buffer: Buffer): boolean {
+  const sample = buffer.subarray(0, Math.min(buffer.length, 8192));
+  for (let i = 0; i < sample.length; i++) {
+    if (sample[i] === 0) return true;
+  }
+  return false;
+}
+
 // 根据文件名后缀分派到对应解析器
 export async function parseQuestionFile(
   buffer: Buffer,
   options: ParseOptions = {}
 ): Promise<ParseResult> {
   const name = (options.fileName ?? "").toLowerCase();
+
+  // 空文件统一处理（避免 markdown 解析器返回"未解析到题目"，给更明确的错误）
+  if (buffer.length === 0) {
+    throw new Error("文件为空，请检查文件内容");
+  }
+
+  // .doc 旧版二进制格式：mammoth 仅支持 .docx
+  if (isLegacyDoc(name)) {
+    throw new Error(
+      `不支持旧版 .doc 格式（${options.fileName ?? "文件"}）。请用 Word 另存为 .docx 后再导入，或复制内容到 .md/.txt 文件`
+    );
+  }
+
   if (name.endsWith(".md") || name.endsWith(".markdown") || name.endsWith(".txt")) {
+    // 二进制伪装成 .md（如改后缀的图片/PDF）：明确拒绝
+    if (looksBinary(buffer)) {
+      throw new Error(
+        `文件内容看起来不是文本（${options.fileName ?? "文件"}）。.md/.txt 需为 UTF-8 文本，二进制文件请用 .docx/.xlsx`
+      );
+    }
     const { parseMarkdown } = await import("./markdown");
     return { ...await parseMarkdown(buffer.toString("utf-8")), parser: "MARKDOWN" };
   }
@@ -53,9 +91,11 @@ export async function parseQuestionFile(
     const { parseExcel } = await import("./excel");
     return { ...await parseExcel(buffer, name.endsWith(".csv")), parser: "EXCEL" };
   }
-  if (name.endsWith(".docx") || name.endsWith(".doc")) {
+  if (name.endsWith(".docx")) {
     const { parseWord } = await import("./word");
     return { ...await parseWord(buffer), parser: "WORD" };
   }
-  throw new Error(`不支持的文件格式：${options.fileName ?? "(未知)"}。支持 .md/.txt/.xlsx/.xls/.csv/.docx`);
+  throw new Error(
+    `不支持的文件格式：${options.fileName ?? "(未知)"}。支持 .md/.markdown/.txt/.xlsx/.xls/.csv/.docx`
+  );
 }

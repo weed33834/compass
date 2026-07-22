@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/Button";
+import { Illustration } from "@/components/Illustration";
 
 interface LogRecord {
   id: string;
@@ -301,7 +302,7 @@ function LogRow({
 function EmptyLogbook() {
   return (
     <div className="rounded-2xl border border-dashed border-starlight/20 bg-abyss-50/20 p-12 text-center">
-      <Inbox className="mx-auto h-12 w-12 text-starlight/50" />
+      <Illustration name="empty-logbook" className="mx-auto h-44 w-44 text-brass/50" />
       <h2 className="mt-3 font-serif text-2xl text-ivory">日志尚未启航</h2>
       <p className="mt-2 font-sans text-sm text-starlight">
         答完第一道题，航海日志就会自动记录每一次出航

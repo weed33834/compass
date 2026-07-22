@@ -24,6 +24,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
+import { Illustration } from "@/components/Illustration";
 
 interface Overview {
   totalAnswers: number;
@@ -279,7 +280,7 @@ export default function AnalyticsPage() {
           {trend.length === 0 && typeStats.length === 0 && weakPoints.length === 0 && (
             <Panel title="尚无数据" subtitle="">
               <div className="py-8 text-center">
-                <BarChart3 className="mx-auto h-10 w-10 text-starlight/40" />
+                <Illustration name="empty-analytics" className="mx-auto h-40 w-40 text-starlight/40" />
                 <p className="mt-3 font-sans text-sm text-starlight">
                   先去答题，分析数据会自动填充
                 </p>

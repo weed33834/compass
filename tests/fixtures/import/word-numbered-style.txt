@@ -1,0 +1,30 @@
+单选题
+
+第1题：下列哪种算法是 Compass 使用的间隔重复算法？
+A. SM-2
+B. FSRS-6
+C. Anki
+D. SuperMemo
+答案：B
+解析：FSRS-6 是 ts-fsrs 实现的间隔重复算法。
+
+第2题：Compass 的题库存储在哪类数据库？
+A. MySQL
+B. PostgreSQL
+C. SQLite
+D. MongoDB
+答案：B
+
+多选题
+
+第3题：下列哪些是 Compass 支持的导入格式？
+A. Markdown
+B. Excel
+C. Word (.docx)
+D. PDF
+答案：ABC
+
+判断题
+
+第4题：FSRS 算法会根据用户的回忆评分动态调整复习间隔。
+答案：正确

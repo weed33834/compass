@@ -27,6 +27,7 @@ import {
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Illustration } from "@/components/Illustration";
 
 interface BankListItem {
   id: string;
@@ -259,7 +260,7 @@ function sourceLabel(source: string): string {
 function EmptyState({ onCreate, onImport, onOfficial }: { onCreate: () => void; onImport: () => void; onOfficial: () => void }) {
   return (
     <div className="rounded-2xl border border-dashed border-starlight/20 bg-abyss-50/20 p-12 text-center">
-      <Ship className="mx-auto h-12 w-12 text-brass/50" />
+      <Illustration name="empty-workshop" className="mx-auto h-44 w-44 text-brass/50" />
       <h2 className="mt-4 font-serif text-2xl text-ivory">还没有题库</h2>
       <p className="mt-2 font-sans text-sm text-starlight">
         新建一个空题库，或直接从 Markdown / Excel / Word 文件导入
@@ -415,6 +416,8 @@ function ImportDialog({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
+  // 导入成功后的反馈（题库名 + 题数）—— 有告警时不立即关闭，让用户先看告警
+  const [success, setSuccess] = useState<{ bankName: string; questionCount: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const submit = async () => {
@@ -425,6 +428,7 @@ function ImportDialog({
     setSubmitting(true);
     setError("");
     setWarnings([]);
+    setSuccess(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -444,10 +448,19 @@ function ImportDialog({
         return;
       }
       if (data.warnings?.length) setWarnings(data.warnings);
-      onImported({ bankName: data.bankName, questionCount: data.questionCount });
+      const info = { bankName: data.bankName, questionCount: data.questionCount };
+      setSuccess(info);
+      // 无告警：直接关闭并刷新；有告警：留在对话框里让用户看完再点"完成"
+      if (!data.warnings?.length) {
+        onImported(info);
+      }
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const finishWithWarnings = () => {
+    if (success) onImported(success);
   };
 
   const onDrop = (e: React.DragEvent) => {
@@ -542,7 +555,7 @@ function ImportDialog({
         )}
 
         {warnings.length > 0 && (
-          <details className="rounded-md border border-f-amber/30 bg-f-amber/5 px-3 py-2">
+          <details className="rounded-md border border-f-amber/30 bg-f-amber/5 px-3 py-2" open={!!success}>
             <summary className="cursor-pointer font-sans text-xs text-f-amber">
               解析告警（{warnings.length} 条）
             </summary>
@@ -554,13 +567,28 @@ function ImportDialog({
           </details>
         )}
 
+        {/* 成功反馈（有告警时停留，无告警时对话框已关闭） */}
+        {success && warnings.length > 0 && (
+          <p className="rounded-md border border-f-emerald/30 bg-f-emerald/10 px-3 py-2 font-sans text-xs text-f-emerald">
+            已导入题库「{success.bankName}」共 {success.questionCount} 题。请查阅上方告警后点击"完成"。
+          </p>
+        )}
+
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            取消
-          </Button>
-          <Button onClick={submit} loading={submitting} disabled={!file}>
-            导入
-          </Button>
+          {success && warnings.length > 0 ? (
+            <Button onClick={finishWithWarnings}>
+              完成
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={onClose} disabled={submitting}>
+                取消
+              </Button>
+              <Button onClick={submit} loading={submitting} disabled={!file}>
+                导入
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </ModalShell>

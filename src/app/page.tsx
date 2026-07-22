@@ -5,6 +5,7 @@ import { Anchor, Navigation, Telescope } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { useTranslation } from '@/components/i18n/useTranslation';
 import { AuthLanguageSwitcher } from '@/components/i18n/AuthLanguageSwitcher';
+import { CompassRose } from '@/components/CompassRose';
 
 // 落地页 —— 深海航海仪器 × 现代极简主义，全屏沉浸式
 export default function HomePage() {
@@ -34,6 +35,8 @@ export default function HomePage() {
       <section className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center">
         {/* 背景：brass 辉光 */}
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-[70vmin] w-[70vmin] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(201,162,39,0.12),transparent_70%)]" />
+        {/* 背景装饰：巨型罗盘玫瑰 */}
+        <CompassRose className="pointer-events-none absolute left-1/2 top-1/2 h-[80vmin] w-[80vmin] -translate-x-1/2 -translate-y-1/2 text-brass/8 animate-[spin_120s_linear_infinite]" />
 
         {/* 右上角语言切换 */}
         <div className="absolute right-4 top-4 z-20 sm:right-8 sm:top-6">
