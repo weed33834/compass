@@ -2,6 +2,20 @@
 
 All notable changes to Compass are documented in this file. This project adheres to [Semantic Versioning](https://semver.org/) and [Conventional Commits](https://www.conventionalcommits.org/).
 
+## V1.4.3 — 2026-07-22
+
+### Added — README 多语言化与仓库可检索性
+
+- **README 三语版本**：主 `README.md` 改为英文（国际可见性优先），新增 `README.zh-CN.md`（简体中文）与 `README.ja.md`（日本語），三个文件顶部互相链接语言切换。英文版完整翻译并润色全部章节（What is this / Core features / Two-phase submit / Quick start / Docker / Import / Architecture / Testing / Tech stack / Design system / Roadmap / Contributing）。
+- **仓库 description 英文化**：GitHub repo description 与 `package.json` description 改为英文，含完整功能关键词（FSRS-6 / self-hosted / spaced-repetition / Anki alternative），提升国际检索命中。
+- **GitHub topics 优化**：精简至 20 个高检索价值标签（anki-alternative / spaced-repetition / fsrs / learning / memorization / self-hosted / nextjs / typescript 等）。
+
+### Changed — package.json
+
+- `description` 由中文改为润色后的英文描述，补充 "A modern self-hosted Anki alternative" 定位语。
+
+---
+
 ## V1.4.2 — 2026-07-22
 
 ### Changed — 依赖手动升级（最低限度自动化策略，无 Dependabot）

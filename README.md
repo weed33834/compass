@@ -2,17 +2,23 @@
   <img src="public/logo.svg" width="160" height="160" alt="Compass Logo" />
 </p>
 
-<h1 align="center">Compass · 刷题罗盘</h1>
+<h1 align="center">Compass · Quiz Compass</h1>
 
 <p align="center">
-  自托管的间隔重复刷题工具，跑 FSRS-6 算法，长航海仪器的样子。<br/>
-  导入 Markdown / Excel / Word 题库 → 在键盘驱动的答题舱里做题 → 算法决定下一张卡什么时候回来。
+  A self-hosted spaced-repetition quiz tool powered by the FSRS-6 algorithm, wrapped in a nautical-instrument aesthetic.<br/>
+  Import Markdown / Excel / Word question banks → answer in a keyboard-driven cockpit → let the algorithm decide when each card comes back.
+</p>
+
+<p align="center">
+  <strong>English</strong> &nbsp;|&nbsp;
+  <a href="README.zh-CN.md">简体中文</a> &nbsp;|&nbsp;
+  <a href="README.ja.md">日本語</a>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-c89b3c.svg?style=flat-square" /></a>
   <a href="https://github.com/weed33834/compass/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/weed33834/compass/ci.yml?branch=main&style=flat-square&label=CI" /></a>
-  <a href="https://gitcode.com/badhope/compass/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.4.2-c89b3c?style=flat-square" /></a>
+  <a href="https://gitcode.com/badhope/compass/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.4.3-c89b3c?style=flat-square" /></a>
   <img alt="Node.js" src="https://img.shields.io/badge/node-%E2%89%A522-0a0f14?style=flat-square&logo=node.js&logoColor=c89b3c" />
   <img alt="pnpm" src="https://img.shields.io/badge/pnpm-%E2%89%A59-c89b3c?style=flat-square&logo=pnpm&logoColor=0a0f14" />
   <img alt="PostgreSQL" src="https://img.shields.io/badge/postgresql-17-0a0f14?style=flat-square&logo=postgresql&logoColor=c89b3c" />
@@ -25,531 +31,530 @@
 </p>
 
 <p align="center">
-  <a href="#快速开始">快速开始</a> ·
-  <a href="#docker-一键部署">Docker 部署</a> ·
-  <a href="#题库导入">题库导入</a> ·
-  <a href="#两阶段提交">两阶段提交</a> ·
-  <a href="#架构总览">架构总览</a> ·
-  <a href="#测试">测试</a> ·
-  <a href="#设计系统">设计系统</a> ·
-  <a href="#路线图">路线图</a>
+  <a href="#what-is-this">What is this</a> ·
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#docker-deployment">Docker</a> ·
+  <a href="#question-bank-import">Import</a> ·
+  <a href="#two-phase-submit">Architecture</a> ·
+  <a href="#testing">Testing</a> ·
+  <a href="#roadmap">Roadmap</a>
 </p>
 
 ---
 
-## 这是什么
+## What is this
 
-刷题工具满大街都是，Compass 想解决的是另外两个问题：
+Quiz tools are everywhere. Compass exists to solve two different problems:
 
-1. **不想被某个 App 锁死。** 题库是你自己的，应该能自己导出、自己改、自己换工具。Compass 把题库做成纯文本友好——Markdown 写起来跟写笔记一样，Excel 直接贴，Word 文档拖进来就解析。数据库是 PostgreSQL，schema 全部开源，随时能 `pg_dump` 走人。
-2. **复习节奏不想自己算。** Anki 的 SM-2 算法是 1985 年的，间隔重复这二十年有进展。Compass 用 [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) 实现的 FSRS-6（DSR 模型，21 个默认权重），把"我答得多准"和"这张卡下次什么时候回来"两件事拆开——你只管按 1/2/3/4 给自己的回忆打分，剩下的交给算法。
+1. **No vendor lock-in.** Your question banks belong to you — export them, edit them, switch tools. Compass treats banks as plain-text-friendly: Markdown reads like notes, Excel pastes right in, Word documents parse on drop. The database is PostgreSQL with a fully open schema; `pg_dump` and walk away anytime.
+2. **Stop computing review intervals yourself.** Anki's SM-2 algorithm dates to 1985; spaced repetition has moved on. Compass runs [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) implementing FSRS-6 (DSR model, 21 default weights), separating *how accurately I recalled* from *when this card returns* — you just press 1/2/3/4 to grade your recall, the algorithm handles the rest.
 
-界面长航海仪器的样子，是因为作者觉得"罗盘 / 漂流瓶 / 航海日志"这些词天然契合"指引方向 / 错题本 / 答题记录"的功能定位，顺手就做了。
+The nautical-instrument aesthetic exists because *compass / drift bottle / logbook* map naturally onto *guidance / mistake book / answer history*.
 
-> **仓库镜像**
-> - 主仓库（GitCode）：<https://gitcode.com/badhope/compass>
-> - GitHub 镜像：<https://github.com/weed33834/compass>
+> **Repository mirrors**
+> - Primary (GitCode): <https://gitcode.com/badhope/compass>
+> - GitHub mirror: <https://github.com/weed33834/compass>
 >
-> 两个仓库内容同步，PR 和 issue 都欢迎，主仓库合并后会自动同步到镜像。
+> Both stay in sync. PRs and issues welcome on either.
 
 ---
 
-## 核心能力
+## Core features
 
-| 模块 | 路径 | 做什么 |
+| Module | Route | What it does |
 |---|---|---|
-| 罗盘 | `/compass` | 今日待复习数、连续天数、题库舰队、一键开答 |
-| 答题舱 | `/study` | 4 种题型、4 键 FSRS 评分（热键 1-4）、每键间隔预览、漏选部分给分、断点续答（localStorage 7 天）、完成报告 |
-| 造船工坊 | `/workshop` | 题库 CRUD、拖拽导入（`.md/.txt/.xlsx/.csv/.docx`）、每库 FSRS 配置、题目分页列表 |
-| 题库详情 | `/workshop/[id]` | 题目分页 + 搜索 + 类型筛选、**题目内联编辑**（4 题型 + 难度 + 收藏 + 启用 + 软删）、**每库 FSRS 调优**（开关 + 留存率 + 新题数 + 复习上限）、**CSV / Anki 导出** |
-| 错题漂流瓶 | `/wrongbook` | `lapses > 0` 的卡会漂到这里，展开看答案和解析，可标"已掌握"或跳去重做 |
-| 航海日志 | `/logbook` | 所有答题记录倒序时间线，按日聚合，可按题库筛选 |
-| 航迹分析 | `/analytics` | 连续天数、正确率、FSRS 状态分布、**365 天答题热力图**、SVG 趋势图、按题型正确率、薄弱知识点 TOP10、记忆健康度（Retrievability 环形图 + 5 桶分布 + 7 天到期预测） |
-| 账户中心 | `/account` | 个人资料、主题切换（深海 / 羊皮纸）、FSRS 参数预览、登出 |
+| Compass | `/compass` | Today's due count, streak days, bank fleet, one-click start |
+| Study cockpit | `/study` | 4 question types, 4-key FSRS rating (hotkeys 1-4), per-key interval preview, partial credit for missed selections, resume-after-exit (localStorage 7-day), completion report |
+| Workshop | `/workshop` | Bank CRUD, drag-and-drop import (`.md/.txt/.xlsx/.csv/.docx`), per-bank FSRS config, paginated question list |
+| Bank detail | `/workshop/[id]` | Pagination + search + type filter, **inline question editing** (4 types + difficulty + star + enable + soft-delete), **per-bank FSRS tuning** (toggle + retention + new-cards/day + review cap), **CSV / Anki export** |
+| Drift bottle | `/wrongbook` | Cards with `lapses > 0` drift here; expand to see answer/explanation, mark mastered or redo |
+| Logbook | `/logbook` | All answer records in reverse-chronological timeline, grouped by day, filterable by bank |
+| Analytics | `/analytics` | Streak, accuracy, FSRS state distribution, **365-day answer heatmap**, SVG trends, per-type accuracy, weak knowledge points TOP 10, memory health (Retrievability ring + 5-bucket distribution + 7-day due forecast) |
+| Account | `/account` | Profile, theme switch (deep-sea / parchment), FSRS params preview, sign out |
 
-### 4 种题型与判分规则
+### 4 question types & grading rules
 
-| 题型 | 答案形状 | 判分 |
+| Type | Answer shape | Grading |
 |---|---|---|
-| `SINGLE_CHOICE` 单选 | `"B"` | 全对 1.0，否则 0 |
-| `MULTI_CHOICE` 多选 | `["A","C"]` | 全对 1.0；漏选 = `0.5 + (已选正确/应选正确) * 0.5`，上限 0.99；错选 = 0 |
-| `TRUE_FALSE` 判断 | `true` / `false` | 全对 1.0，否则 0 |
-| `FILL_BLANK` 填空 | `["北京"]` | 每空单独归一化（trim + lowercase + 全角转半角 + 折叠空白）；`|` 分隔可接受答案 |
+| `SINGLE_CHOICE` | `"B"` | Correct = 1.0, else 0 |
+| `MULTI_CHOICE` | `["A","C"]` | All correct = 1.0; missed = `0.5 + (selected-correct / expected-correct) * 0.5`, capped at 0.99; wrong selection = 0 |
+| `TRUE_FALSE` | `true` / `false` | Correct = 1.0, else 0 |
+| `FILL_BLANK` | `["Beijing"]` | Each blank normalized independently (trim + lowercase + fullwidth→halfwidth + collapse whitespace); `\|` separates acceptable answers |
 
 ---
 
-## 两阶段提交
+## Two-phase submit
 
-为了避免重复调度 FSRS（用户覆盖默认评分时算两次），答题流被拆成两个 API：
+To avoid double-scheduling FSRS (when the user overrides the default rating), the answer flow splits into two API calls:
 
 ```mermaid
 sequenceDiagram
-    participant U as 浏览器
+    participant U as Browser
     participant G as /api/study/grade
     participant A as /api/study/apply
     participant DB as PostgreSQL
 
     U->>G: POST { reviewItemId, userAnswer, timeSpentSec }
-    G->>DB: 写 AnswerRecord（不动 FSRS）
+    G->>DB: Write AnswerRecord (no FSRS)
     G-->>U: { isCorrect, partialScore, explanation, previews: {again,hard,good,easy} }
 
-    Note over U: 用户基于自身体验按 1/2/3/4 评分<br/>（或按 Space 接受默认评分）
+    Note over U: User grades recall with 1/2/3/4<br/>(or Space to accept default)
 
     U->>A: POST { reviewItemId, rating, timeSpentSec }
     A->>A: gradeCard(prevCard, rating, now)
-    A->>DB: 更新 ReviewItem (FSRS 新状态)
-    A->>DB: 写 ReviewLog（不可变日志，供优化器）
+    A->>DB: Update ReviewItem (new FSRS state)
+    A->>DB: Write ReviewLog (immutable log for optimizer)
     A-->>U: { state, reps, lapses, stability, difficulty, dueAt, nextIntervalLabel }
 ```
 
-`grade` 阶段会根据 `partialScore` 自动映射一个默认评分（全对 → GOOD，部分对 → HARD，全错 → AGAIN），用户按 `Space` 就接受默认；想自己定就按 `1/2/3/4`。
+The `grade` phase auto-maps a default rating from `partialScore` (all correct → GOOD, partial → HARD, all wrong → AGAIN). Press `Space` to accept the default, or `1/2/3/4` to override.
 
 ---
 
-## 快速开始
+## Quick start
 
-### 前置依赖
+### Prerequisites
 
-| 工具 | 最低版本 | 备注 |
+| Tool | Min version | Notes |
 |---|---|---|
-| Node.js | 22.13 | pnpm 11 依赖 `node:sqlite`，需 Node 22+ |
-| pnpm | 11 | 由 `package.json` 的 `packageManager` 字段锁定，corepack 自动安装 |
-| PostgreSQL | 17 | 16 也能跑，没强制 |
+| Node.js | 22.13 | pnpm 11 depends on `node:sqlite`, requires Node 22+ |
+| pnpm | 11 | Locked via `package.json` `packageManager` field; corepack auto-installs |
+| PostgreSQL | 17 | 16 works too, not enforced |
 
-### 步骤
+### Steps
 
 ```bash
 git clone https://gitcode.com/badhope/compass.git
 cd compass
 pnpm install
 cp .env.example .env
-# 编辑 .env，至少填这两项：
-#   DATABASE_URL=postgresql://postgres:<你的密码>@localhost:5432/compass
-#   NEXTAUTH_SECRET=<openssl rand -base64 32 生成>
+# Edit .env, at minimum set:
+#   DATABASE_URL=postgresql://postgres:<password>@localhost:5432/compass
+#   NEXTAUTH_SECRET=<generate with: openssl rand -base64 32>
 
 pnpm db:generate
 pnpm db:migrate
-pnpm db:seed      # 可选：插 3 个示例题库共 60 题（FSRS / 中国地理 / TypeScript），覆盖 4 种题型
+pnpm db:seed      # Optional: 3 sample banks, 60 questions total (FSRS / China geography / TypeScript), covers all 4 types
 pnpm dev          # → http://localhost:3000
 ```
 
-种子数据自带一个演示账号：`captain@compass.dev` / `Compass-Test-2026!`。生产环境请务必改掉或删除。
+The seed includes a demo account: `captain@compass.dev` / `Compass-Test-2026!`. Change or delete it in production.
 
 ---
 
-## Docker 一键部署
+## Docker deployment
 
-不想本地装 Node.js / PostgreSQL？用 Docker Compose 三步起飞：
+Skip installing Node.js / PostgreSQL locally — Docker Compose gets you running in three steps:
 
 ```bash
 git clone https://gitcode.com/badhope/compass.git
 cd compass
 cp .env.example .env
-# 至少改两项：
-#   NEXTAUTH_URL=http://你的域名或IP:3000
+# At minimum change:
+#   NEXTAUTH_URL=http://your-domain-or-ip:3000
 #   NEXTAUTH_SECRET=$(openssl rand -base64 32)
-#   POSTGRES_PASSWORD=改成强密码
+#   POSTGRES_PASSWORD=<strong password>
 
 docker compose up -d --build
 ```
 
-跑起来后访问 `http://localhost:3000`，容器会自动：
+Visit `http://localhost:3000`. The container automatically:
 
-1. 等 PostgreSQL 健康检查通过（最多 60s）
-2. 跑 `prisma migrate deploy`（应用所有迁移）
-3. 启动 Next.js standalone 生产服务器
+1. Waits for PostgreSQL healthcheck (up to 60s)
+2. Runs `prisma migrate deploy` (applies all migrations)
+3. Starts the Next.js standalone production server
 
-### 包含什么
+### What's included
 
-| 容器 | 镜像 | 作用 |
+| Container | Image | Purpose |
 |---|---|---|
-| `compass-db` | `postgres:17-alpine` | 数据库，数据卷持久化 |
-| `compass-app` | 本仓库 `Dockerfile` 构建 | Compass 本体（非 root 用户，tini 作 init） |
-| `compass-caddy`（可选） | `caddy:2-alpine` | 自动 HTTPS 反代 + 安全头，生产环境推荐 |
+| `compass-db` | `postgres:17-alpine` | Database with persistent volume |
+| `compass-app` | Built from this repo's `Dockerfile` | Compass itself (non-root user, tini as init) |
+| `compass-caddy` (optional) | `caddy:2-alpine` | Auto-HTTPS reverse proxy + security headers, recommended for production |
 
-### 生产环境 checklist
+### Production checklist
 
-- [ ] `NEXTAUTH_URL` 改为实际访问域名
-- [ ] `NEXTAUTH_SECRET` 用 `openssl rand -base64 32` 生成
-- [ ] `POSTGRES_PASSWORD` 改为强密码
-- [ ] 取消 `docker-compose.yml` 里 `caddy` 段注释，配置 `DOMAIN`，启用自动 HTTPS
-- [ ] 若部署在反代后，设置 `TRUSTED_PROXY_IPS` 为代理 IP（逗号分隔），否则限流可能不准
-- [ ] （可选）配置 `SMTP_URL` 启用密码重置邮件
+- [ ] Set `NEXTAUTH_URL` to your actual access domain
+- [ ] Generate `NEXTAUTH_SECRET` with `openssl rand -base64 32`
+- [ ] Set `POSTGRES_PASSWORD` to a strong password
+- [ ] Uncomment the `caddy` section in `docker-compose.yml`, configure `DOMAIN`, enable auto-HTTPS
+- [ ] Behind a reverse proxy? Set `TRUSTED_PROXY_IPS` to the proxy IP (comma-separated), otherwise rate limiting may be inaccurate
+- [ ] (Optional) Configure `SMTP_URL` for password-reset emails
 
-### 镜像特性
+### Image features
 
-- **多阶段构建**：`deps → builder → runner`，最终镜像只含 standalone 产物 + 必要 node_modules，体积约 200MB
-- **非 root 运行**：`node:22-alpine` + `node` 用户，最小权限
-- **tini 作 PID 1**：正确处理信号 + 僵尸进程回收
-- **HEALTHCHECK**：内置 `/api/health` 探活，K8s / Docker Swarm 可直接用
-- **docker-entrypoint.sh**：等 DB → 迁移 → 启动，启动顺序安全
+- **Multi-stage build**: `deps → builder → runner`; final image contains only standalone output + necessary node_modules, ~200MB
+- **Non-root runtime**: `node:22-alpine` + `node` user, least privilege
+- **tini as PID 1**: Proper signal handling + zombie reaping
+- **HEALTHCHECK**: Built-in `/api/health` probe, ready for K8s / Docker Swarm
+- **docker-entrypoint.sh**: Wait for DB → migrate → start, safe boot order
 
-> 想自己拼命令？`docker build -t compass .` 然后 `docker run -p 3000:3000 --env-file .env compass` 也行，记得自己起一个 PostgreSQL。
+> Prefer manual commands? `docker build -t compass .` then `docker run -p 3000:3000 --env-file .env compass` works too — just bring your own PostgreSQL.
 
 ---
 
-## 题库导入
+## Question bank import
 
-### 官方题库（内置）
+### Official banks (built-in)
 
-Compass 随仓库分发 4 个官方题库（Markdown 静态文件），位于 `public/official-banks/`：
+Compass ships 4 official banks as Markdown static files in `public/official-banks/`:
 
-| 题库 | 题数 | 覆盖范围 |
-|------|------|----------|
-| FSRS 与间隔重复入门 | 20 | FSRS-6 核心概念、DSR 模型、评分机制、参数优化 |
-| 中国地理与人文常识 | 20 | 省级行政区、山川河流、世界遗产、节气民俗 |
-| 编程基础与 TypeScript | 20 | 类型系统、泛型、异步、模块、最佳实践 |
-| Python 编程基础 | 20 | 数据类型、控制流、函数、模块、面向对象、异常 |
+| Bank | Questions | Coverage |
+|------|-----------|----------|
+| FSRS & spaced-repetition intro | 20 | FSRS-6 core concepts, DSR model, rating mechanics, parameter optimization |
+| China geography & culture | 20 | Provincial regions, rivers & mountains, world heritage, solar terms & folklore |
+| Programming basics & TypeScript | 20 | Type system, generics, async, modules, best practices |
+| Python programming basics | 20 | Data types, control flow, functions, modules, OOP, exceptions |
 
-进入 `/workshop` → 点击"官方题库"→ 选择题库 → 点击"加载"。题库文件随仓库分发，**不加载不占数据库**，加载时复用 Markdown 导入 API。
+Go to `/workshop` → click "Official Banks" → pick a bank → click "Load". Bank files ship with the repo and **consume no database space until loaded**; loading reuses the Markdown import API.
 
-### Markdown（推荐）
+### Markdown (recommended)
 
 ```markdown
-# 题库名（可选，第一行）
+# Bank name (optional, first line)
 
 ---
 
-## 单选题
+## Single choice
 
-题干可以多行。
+The stem can span multiple lines.
 
-A. 选项 A
-B. 选项 B
-C. 选项 C
-D. 选项 D
+A. Option A
+B. Option B
+C. Option C
+D. Option D
 
-答案：B
-解析：因为 B 是正确的。
-难度：3
-知识点：马原-辩证法, 真题-2024
-来源：2024 国考真题
-
----
-
-## 多选题
-
-下列哪些是正确的？
-
-A. 选项 A
-B. 选项 B
-
-答案：AC
+Answer: B
+Explanation: Because B is correct.
+Difficulty: 3
+Knowledge: algebra-basics, exam-2024
+Source: 2024 national exam
 
 ---
 
-## 判断题
+## Multiple choice
 
-地球是圆的。
+Which of the following are correct?
 
-答案：正确
+A. Option A
+B. Option B
+
+Answer: AC
 
 ---
 
-## 填空题
+## True / False
 
-中国的首都是____。
+The Earth is round.
 
-答案：北京
+Answer: True
+
+---
+
+## Fill in the blank
+
+The capital of China is ____.
+
+Answer: Beijing
 ```
 
-填空题支持多空（`||` 分隔）和可接受答案（`|` 分隔）：
+Fill-blank supports multiple blanks (`||` separated) and acceptable answers (`|` separated):
 
 ```
-答案：北京|Beijing||长江|Yangtze
+Answer: Beijing|Beijing||Yangtze|Yangtze River
 ```
 
 ### Excel / CSV
 
-第一行是表头（不区分大小写，接受中文别名）：
+First row is the header (case-insensitive, accepts Chinese aliases):
 
-| 列名 | 必填 | 内容 |
+| Column | Required | Content |
 |---|---|---|
-| `type` / `题型` | 是（或自动推断） | `单选` / `多选` / `判断` / `填空`（也接受英文） |
-| `stem` / `题干` | 是 | 题干文本 |
-| `options` / `选项` | 选择题必填 | `A.选项A|B.选项B|C.选项C`（管道符分隔） |
-| `answer` / `答案` | 是 | 单选 `"B"` / 多选 `"AC"` 或 `"A,C"` / 判断 `"正确"` / 填空 `"北京||Beijing"` |
-| `explanation` / `解析` | 选填 | Markdown |
-| `difficulty` / `难度` | 选填 | 1-5 |
-| `knowledge` / `知识点` | 选填 | 逗号分隔 |
-| `source` / `来源` | 选填 | 自由文本 |
+| `type` | Yes (or auto-inferred) | `single` / `multi` / `true-false` / `fill-blank` (also accepts Chinese) |
+| `stem` | Yes | Question text |
+| `options` | Required for choice types | `A.Option A|B.Option B|C.Option C` (pipe-separated) |
+| `answer` | Yes | Single `"B"` / Multi `"AC"` or `"A,C"` / Boolean `"True"` / Fill `"Beijing||Yangtze"` |
+| `explanation` | Optional | Markdown |
+| `difficulty` | Optional | 1-5 |
+| `knowledge` | Optional | Comma-separated |
+| `source` | Optional | Free text |
 
 ### Word (.docx)
 
-两种写法都接受：
+Both styles accepted:
 
-1. **Markdown 风格**——直接把上面的 Markdown 写进 Word 文档。
-2. **纯文本风格**——每题之间空一行，每块第一行是题型标签（`单选题` / `判断题` / …），选项和答案跟 Markdown 同样的写法。
+1. **Markdown style** — paste the Markdown above directly into a Word document.
+2. **Plain-text style** — separate questions with blank lines; each block starts with a type label (`Single choice` / `True/False` / …); options and answers follow the same format as Markdown.
 
 ---
 
-## 配置
+## Configuration
 
-所有环境变量都在 `.env.example` 里有说明。必填的三项：
+All environment variables are documented in `.env.example`. The three required ones:
 
-| 变量 | 用途 |
+| Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | PostgreSQL 连接串 |
-| `NEXTAUTH_URL` | 部署地址（本地开发用 `http://localhost:3000`） |
-| `NEXTAUTH_SECRET` | JWT 签名密钥，`openssl rand -base64 32` 生成 |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `NEXTAUTH_URL` | Deployment URL (`http://localhost:3000` for local dev) |
+| `NEXTAUTH_SECRET` | JWT signing key, generate with `openssl rand -base64 32` |
 
-可选：SMTP 配置启用密码重置邮件；OAuth provider（GitHub、Google）启用第三方登录。
+Optional: SMTP config enables password-reset emails; OAuth providers (GitHub, Google) enable third-party login.
 
 ---
 
-## 架构总览
+## Architecture overview
 
 ```
 src/
   app/
-    (main)/              登录后的页面
-      compass/           罗盘首页（今日概览 + 题库舰队）
-      study/             答题舱（4 题型 + 4 键评分）
-      workshop/          造船工坊（题库管理 + 导入）
-        [id]/            题库详情（题目分页列表）
-      wrongbook/         错题漂流瓶
-      logbook/           航海日志
-      analytics/         航迹分析
-      account/           账户中心
-    login/ register/     登录注册
-    api/                 REST 端点
-      banks/             题库 CRUD + 导入
-      questions/         题目 CRUD
+    (main)/              Authenticated pages
+      compass/           Home dashboard (today's overview + bank fleet)
+      study/             Study cockpit (4 types + 4-key rating)
+      workshop/          Workshop (bank management + import)
+        [id]/            Bank detail (paginated question list)
+      wrongbook/         Drift bottle (mistake book)
+      logbook/           Logbook (answer history)
+      analytics/         Analytics (stats + heatmap)
+      account/           Account center
+    login/ register/     Auth pages
+    api/                 REST endpoints
+      banks/             Bank CRUD + import
+      questions/         Question CRUD
       study/             queue / grade / apply / sessions
-      wrongbook/         错题列表 + 标记已掌握
-      logbook/           答题历史
-      analytics/         统计聚合
+      wrongbook/         Mistake list + mark mastered
+      logbook/           Answer history
+      analytics/         Stats aggregation
   components/
-    AppShell.tsx         左侧导航 + 移动端底栏
+    AppShell.tsx         Left nav + mobile bottom bar
     ui/                  Button / Card / Input / ...
   lib/
-    auth.ts              NextAuth 配置
-    prisma.ts            Prisma 单例
-    fsrs.ts              FSRS-6 封装（grade / preview / format）
+    auth.ts              NextAuth config
+    prisma.ts            Prisma singleton
+    fsrs.ts              FSRS-6 wrapper (grade / preview / format)
     quiz/
-      grading.ts         4 题型统一判分
-      scheduler.ts       每日队列构建（到期 + 新卡 + 错题重做）
-      import/            Markdown / Excel / Word 解析器
+      grading.ts         Unified 4-type grading
+      scheduler.ts       Daily queue builder (due + new + mistake redo)
+      import/            Markdown / Excel / Word parsers
 prisma/
-  schema.prisma          12 个模型
-  seed.ts                示例题库
+  schema.prisma          12 models
+  seed.ts                Sample banks
 ```
 
-### 数据模型
+### Data models
 
-| 模型 | 用途 |
+| Model | Purpose |
 |---|---|
-| `User` | 账户、主题、语言 |
-| `QuestionBank` | 题库，含每库 FSRS 配置（`newCardsPerDay` / `desiredRetention`） |
-| `Question` | 题干、选项 JSON、答案 JSON、解析、知识点 |
-| `ReviewItem` | 用户 × 题目 的 FSRS 卡片状态（stability / difficulty / reps / lapses / dueAt） |
-| `ReviewLog` | 不可变复习日志，给 FSRS 优化器用 |
-| `AnswerRecord` | 每次答题尝试，含部分得分和用时 |
-| `QuizSession` | 可选的会话分组 |
-| `SessionAnswer` | 会话内单题作答 |
-| `FsrsParams` | 用户级 FSRS 权重（留给优化器） |
-| `LearningPlan` | 学习计划（预留） |
-| `AgentGenerationTask` | AI 智能体任务队列（V2 用） |
-| `Notification` / `WeeklyReview` | 通知 + 周回顾（预留） |
+| `User` | Account, theme, language |
+| `QuestionBank` | Bank with per-bank FSRS config (`newCardsPerDay` / `desiredRetention`) |
+| `Question` | Stem, options JSON, answer JSON, explanation, knowledge points |
+| `ReviewItem` | User × question FSRS card state (stability / difficulty / reps / lapses / dueAt) |
+| `ReviewLog` | Immutable review log for the FSRS optimizer |
+| `AnswerRecord` | Each answer attempt, including partial score and time spent |
+| `QuizSession` | Optional session grouping |
+| `SessionAnswer` | Single answer within a session |
+| `FsrsParams` | User-level FSRS weights (for optimizer) |
+| `LearningPlan` | Study plan (reserved) |
+| `AgentGenerationTask` | AI agent task queue (V2) |
+| `Notification` / `WeeklyReview` | Notifications + weekly review (reserved) |
 
-### API 端点
+### API endpoints
 
-- **认证** — `/api/auth/[...nextauth]`、`/api/auth/register`、`/api/auth/forgot-password`、`/api/auth/reset-password`
-- **题库** — `/api/banks` (GET/POST)、`/api/banks/:id` (GET/PATCH/DELETE)、`/api/banks/:id/questions` (GET/POST)、`/api/banks/import` (POST multipart)
-- **题目** — `/api/questions/:id` (GET/PATCH/DELETE)
-- **答题** — `/api/study/queue`、`/api/study/grade`、`/api/study/apply`、`/api/study/sessions`
-- **错题本** — `/api/wrongbook` (GET/PATCH)
-- **日志** — `/api/logbook` (GET)
-- **分析** — `/api/analytics` (GET)
-- **健康检查** — `/api/health` (GET) → Docker / K8s 探活
+- **Auth** — `/api/auth/[...nextauth]`, `/api/auth/register`, `/api/auth/forgot-password`, `/api/auth/reset-password`
+- **Banks** — `/api/banks` (GET/POST), `/api/banks/:id` (GET/PATCH/DELETE), `/api/banks/:id/questions` (GET/POST), `/api/banks/import` (POST multipart)
+- **Questions** — `/api/questions/:id` (GET/PATCH/DELETE)
+- **Study** — `/api/study/queue`, `/api/study/grade`, `/api/study/apply`, `/api/study/sessions`
+- **Wrong book** — `/api/wrongbook` (GET/PATCH)
+- **Logbook** — `/api/logbook` (GET)
+- **Analytics** — `/api/analytics` (GET)
+- **Health** — `/api/health` (GET) → Docker / K8s probe
 
 ---
 
-## 测试
+## Testing
 
-Compass 维护三层测试，CI 在每次 push / PR 自动跑前两层：
+Compass maintains three test layers; CI runs the first two on every push / PR:
 
-### 单元测试（无需数据库，CI 必跑）
+### Unit tests (no DB required, CI mandatory)
 
-`pnpm test:unit` 跑 49 个纯逻辑测试，覆盖三个核心模块：
+`pnpm test:unit` runs 49 pure-logic tests across three core modules:
 
-| 测试文件 | 数量 | 覆盖范围 |
+| Test file | Count | Coverage |
 |---|---|---|
-| `scripts/grading-test.ts` | 13 | 4 题型判分：单选 / 多选（漏选部分给分）/ 判断（中英文布尔）/ 填空（多空 + `\|` 等价答案 + 归一化） |
-| `scripts/fsrs-test.ts` | 19 | Prisma 字符串 enum ↔ ts-fsrs 数字 State 双向转换、`dbRowToCard` / `cardToDbUpdate`、`gradeCard` 调度、`previewIntervals`、`formatInterval`、`scoreToRating` 映射 |
-| `scripts/parser-test.ts` | 17 | Markdown / Excel / Word 解析器：合法解析、空文件 / 二进制 / 未知后缀拒绝、缺答案告警、答案不在选项中告警、编号格式兼容 |
+| `scripts/grading-test.ts` | 13 | 4-type grading: single / multi (partial credit for missed) / true-false (CN+EN booleans) / fill-blank (multi-blank + `\|` equivalent answers + normalization) |
+| `scripts/fsrs-test.ts` | 19 | Prisma string-enum ↔ ts-fsrs numeric State bidirectional conversion, `dbRowToCard` / `cardToDbUpdate`, `gradeCard` scheduling, `previewIntervals`, `formatInterval`, `scoreToRating` mapping |
+| `scripts/parser-test.ts` | 17 | Markdown / Excel / Word parsers: valid parsing, empty/binary/unknown-extension rejection, missing-answer warnings, answer-not-in-options warnings, numbering format compat |
 
-测试用 `node:assert` 写，无测试框架依赖，`tsx` 直接跑。
+Tests use `node:assert` with no test-framework dependency; `tsx` runs them directly.
 
-### API 烟雾测试（需 dev server + DB）
+### API smoke tests (requires dev server + DB)
 
-`pnpm test:api` 跑 `scripts/api-test.ts`，覆盖未登录拦截、NextAuth 登录、题库 CRUD、两阶段提交、错题本、日志、分析共 7 组。需先 `pnpm dev` + 数据库就绪。
+`pnpm test:api` runs `scripts/api-test.ts`, covering unauthenticated interception, NextAuth login, bank CRUD, two-phase submit, wrong book, logbook, analytics — 7 groups. Requires `pnpm dev` + a ready database first.
 
-### E2E 测试（Playwright，需 dev server + DB）
+### E2E tests (Playwright, requires dev server + DB)
 
-`tests/e2e/` 下 4 套 Playwright 测试，模拟真实用户点击：
+Four Playwright suites under `tests/e2e/` simulate real user clicks:
 
-| 文件 | 用例数 | 覆盖范围 |
+| File | Cases | Coverage |
 |---|---|---|
-| `visual-walkthrough.spec.ts` | 15 | 全站视觉走查：落地页 / 登录 / 注册 / 罗盘 / 工坊 / 答题 / 错题本 / 日志 / 分析 / 账户 / 404 |
-| `import-flow.spec.ts` | 7 | 题库导入：合法 Markdown / CSV / Word、空文件 / 二进制 / 未知后缀拒绝、告警提示 |
-| `answering-flow.spec.ts` | 5 | 完整答题流：开始 / 答完所有题 / 完成报告 / 再来一轮 / 错题重做 |
-| `full-flow.spec.ts` | — | 端到端全流程串联 |
+| `visual-walkthrough.spec.ts` | 15 | Full-site visual walkthrough: landing / login / register / compass / workshop / study / wrongbook / logbook / analytics / account / 404 |
+| `import-flow.spec.ts` | 7 | Bank import: valid Markdown / CSV / Word, empty/binary/unknown-extension rejection, warning prompts |
+| `answering-flow.spec.ts` | 5 | Full answer flow: start / answer all / completion report / replay / mistake redo |
+| `full-flow.spec.ts` | — | End-to-end full-flow chain |
 
-跑 E2E：`pnpm exec playwright test`（需先配置 `playwright.config.ts` 里的 baseURL）。
+Run E2E: `pnpm exec playwright test` (configure `playwright.config.ts` baseURL first).
 
-### CI 策略
+### CI strategy
 
-CI（`.github/workflows/ci.yml`）只做最低程度的自动化门禁，**不做**自动发布 / 部署 / 依赖更新 / 自动合并 / 机器人评论：
+CI (`.github/workflows/ci.yml`) keeps automation to a minimum — **no** auto-publish / deploy / dependency updates / auto-merge / bot comments:
 
 - `push` / `PR` to `main` → `install → db:generate → typecheck → lint → test:unit → build`
-- `push` to `main` → 额外跑 `docker-build` job 验证 Dockerfile 可构建
-- Dependabot 显式禁用（`.github/dependabot.yml` `updates: []`），依赖由 maintainer 手动评估
-- 同分支新提交取消旧 run，省 CI 配额
+- `push` to `main` → additionally runs `docker-build` job to verify the Dockerfile builds
+- Dependabot explicitly disabled (`.github/dependabot.yml` `updates: []`); dependencies reviewed manually by the maintainer
+- New commits on the same branch cancel old runs to save CI quota
 
 ---
 
-## 技术栈
+## Tech stack
 
-| 层 | 选型 | 版本 |
+| Layer | Choice | Version |
 |---|---|---|
-| 框架 | Next.js (App Router) | 16.2.11 |
-| 语言 | TypeScript | 5.9 |
-| 样式 | Tailwind CSS | 4.3.3 |
+| Framework | Next.js (App Router) | 16.2.11 |
+| Language | TypeScript | 5.9 |
+| Styling | Tailwind CSS | 4.3.3 |
 | ORM | Prisma | 5.22 |
-| 数据库 | PostgreSQL | 17 |
-| 认证 | NextAuth.js | 4.24.15 |
-| 间隔重复 | ts-fsrs | 5.4 |
-| UI 原语 | Radix UI | 1.1.21 |
-| Excel 解析 | xlsx | 0.18 |
-| Word 解析 | mammoth | 1.12 |
-| 动画 | framer-motion | 12.42 |
-| 图标 | Lucide React | 1.25 |
-| 校验 | Zod | 4.4 |
-| 运行时 | Node.js | ≥22.13 |
+| Database | PostgreSQL | 17 |
+| Auth | NextAuth.js | 4.24.15 |
+| Spaced repetition | ts-fsrs | 5.4 |
+| UI primitives | Radix UI | 1.1.21 |
+| Excel parsing | xlsx | 0.18 |
+| Word parsing | mammoth | 1.12 |
+| Animation | framer-motion | 12.42 |
+| Icons | Lucide React | 1.25 |
+| Validation | Zod | 4.4 |
+| Runtime | Node.js | ≥22.13 |
 
 ---
 
-## 设计系统
+## Design system
 
-界面借了航海和天文的语言——黄铜环、深渊背景、象牙白文字、珊瑚红警示。
+The interface borrows nautical and astronomical language — brass rings, abyss backgrounds, ivory text, coral alerts.
 
-**核心色板**
+**Core palette**
 
-| Token | Hex | 用途 |
+| Token | Hex | Usage |
 |---|---|---|
-| `abyss` | `#0a0f14` | 背景深度 |
-| `ivory` | `#f0ead6` | 主文字 |
-| `brass` | `#c89b3c` | 交互高亮、导航 |
-| `coral` | `#e0584a` | 破坏性操作、到期警示 |
+| `abyss` | `#0a0f14` | Background depth |
+| `ivory` | `#f0ead6` | Primary text |
+| `brass` | `#c89b3c` | Interactive highlights, navigation |
+| `coral` | `#e0584a` | Destructive actions, due alerts |
 
-**反馈色板**（4 键评分条 + 答题揭示）
+**Feedback palette** (4-key rating bar + answer reveal)
 
-| Token | Hex | 含义 |
+| Token | Hex | Meaning |
 |---|---|---|
-| `f-emerald` | `#10b981` | EASY — 流畅回忆 |
-| `f-azure` | `#38bdf8` | GOOD — 正常回忆 |
-| `f-amber` | `#f59e0b` | HARD — 勉强答对 |
-| `f-coral2` | `#ef4444` | AGAIN — 完全失忆 |
+| `f-emerald` | `#10b981` | EASY — fluent recall |
+| `f-azure` | `#38bdf8` | GOOD — normal recall |
+| `f-amber` | `#f59e0b` | HARD — barely correct |
+| `f-coral2` | `#ef4444` | AGAIN — total lapse |
 
-两套主题：
-- **深海**（默认）—— 深渊背景 + 黄铜高亮 + 星点
-- **羊皮纸** —— 暖米色背景 + 深棕文字 + 黄铜保留
+Two themes:
+- **Deep sea** (default) — abyss background + brass highlights + starfield
+- **Parchment** — warm cream background + dark brown text + brass retained
 
-字体只用系统原生字体——Georgia 衬线标题，system-ui 正文，ui-monospace 数据。没有任何外部 CDN 字体。
+Fonts use only system-native families — Georgia serif for headings, system-ui for body, ui-monospace for data. No external CDN fonts.
 
 ---
 
-## 命令速查
+## Command reference
 
-| 命令 | 作用 |
+| Command | Purpose |
 |---|---|
-| `pnpm dev` | 开发服务器（端口 3000） |
-| `pnpm build` | 生产构建 |
-| `pnpm start` | 启动生产服务器 |
+| `pnpm dev` | Dev server (port 3000) |
+| `pnpm build` | Production build |
+| `pnpm start` | Start production server |
 | `pnpm lint` | ESLint |
-| `pnpm typecheck` | TypeScript 类型检查（`tsc --noEmit`） |
-| `pnpm test:unit` | 单元测试（判分 + FSRS + 解析器，无需 DB） |
-| `pnpm test:grading` | 仅跑判分单元测试 |
-| `pnpm test:fsrs` | 仅跑 FSRS 状态映射单元测试 |
-| `pnpm test:parser` | 仅跑导入解析器单元测试 |
-| `pnpm test:api` | API 烟雾测试（需先启动 `pnpm dev` + 数据库） |
-| `pnpm db:generate` | 生成 Prisma 客户端 |
-| `pnpm db:migrate` | 跑数据库迁移（开发） |
-| `pnpm db:deploy` | 部署迁移（生产） |
-| `pnpm db:seed` | 插入示例题库 |
-| `pnpm db:studio` | 启动 Prisma Studio GUI |
+| `pnpm typecheck` | TypeScript type check (`tsc --noEmit`) |
+| `pnpm test:unit` | Unit tests (grading + FSRS + parsers, no DB) |
+| `pnpm test:grading` | Run only grading unit tests |
+| `pnpm test:fsrs` | Run only FSRS state-mapping unit tests |
+| `pnpm test:parser` | Run only import-parser unit tests |
+| `pnpm test:api` | API smoke tests (requires `pnpm dev` + DB) |
+| `pnpm db:generate` | Generate Prisma client |
+| `pnpm db:migrate` | Run database migrations (dev) |
+| `pnpm db:deploy` | Deploy migrations (production) |
+| `pnpm db:seed` | Insert sample banks |
+| `pnpm db:studio` | Launch Prisma Studio GUI |
 
 ---
 
-## 路线图
+## Roadmap
 
-### V1 — 刷题地基（已完成）
+### V1 — Quiz foundation (done)
 
-- [x] FSRS-6 调度 + 4 键评分条
-- [x] 4 种题型统一判分 + 漏选部分给分
-- [x] Markdown / Excel / Word 导入
-- [x] 错题漂流瓶 + 航海日志 + 航迹分析
-- [x] 深海 / 羊皮纸 双主题
+- [x] FSRS-6 scheduling + 4-key rating bar
+- [x] 4 question types with unified grading + partial credit for missed selections
+- [x] Markdown / Excel / Word import
+- [x] Drift bottle (mistake book) + logbook + analytics
+- [x] Deep-sea / parchment dual themes
 
-### V1.1 — 打磨（已完成）
+### V1.1 — Polish (done)
 
-- [x] 首次进入欢迎引导卡（localStorage 标记，可关闭）+ 题库舰队卡片升级（描述 / 标签 / 进度条）
-- [x] 完成报告升级为学习画像：画像标签 + 题型掌握度 + FSRS 评分分布 + 薄弱知识点 TOP3 + 漏选提示 + 规则化建议
-- [x] 种子题库扩容：12 题 → 60 题，覆盖 FSRS 概念 / 中国地理 / TypeScript 三类
-- [x] 错题本逻辑修复：AGAIN 评分也入瓶（原先只有 FSRS lapse 入瓶，NEW/LEARNING 卡答错被漏掉）
-- [x] LOGO 嵌入导航品牌区，移动端顶栏同步
+- [x] First-visit welcome guide card (localStorage flag, dismissible) + upgraded bank fleet cards (description / tags / progress bar)
+- [x] Completion report upgraded to learning profile: profile tags + per-type mastery + FSRS rating distribution + weak knowledge TOP 3 + missed-selection hints + actionable advice
+- [x] Seed banks expanded: 12 → 60 questions across FSRS concepts / China geography / TypeScript
+- [x] Wrong-book logic fix: AGAIN rating also enters the bottle (previously only FSRS lapses did; NEW/LEARNING cards answered wrong were missed)
+- [x] Logo embedded in nav brand area, synced to mobile top bar
 
-### V1.2 — 记忆健康度与断点续答（已完成）
+### V1.2 — Memory health & resume (done)
 
-- [x] **记忆健康度（Retrievability）**：航迹分析新增 FSRS-6 衰退曲线可视化——平均记忆留存率环形图 + 5 桶分布（危急 / 脆弱 / 尚可 / 稳固 / 鲜活）+ 即将遗忘警示（R&lt;70%）+ 未来 7 天到期预测柱图
-- [x] **断点续答**：答题中途退出后，下次进入 `/study` 检测到 localStorage 存档会弹"继续答题 / 放弃存档"对话框，存档保留 7 天自动过期，完成本轮答题自动清除
-- [x] **开源仓库配套**：CI 工作流（typecheck + lint + build 三项门禁）+ Dependabot 显式禁用 + PR 模板补充 maintainer 自动化策略
+- [x] **Memory health (Retrievability)**: analytics gains FSRS-6 decay curve visualization — average retention ring + 5-bucket distribution (critical / fragile / fair / stable / fresh) + forgetting alerts (R<70%) + 7-day due forecast bar chart
+- [x] **Resume after exit**: leaving mid-study and returning to `/study` detects a localStorage save and prompts "continue / discard"; saves expire after 7 days, cleared on round completion
+- [x] **Open-source housekeeping**: CI workflow (typecheck + lint + build gates) + Dependabot explicitly disabled + PR template documents maintainer automation policy
 
-### V1.3 — 工坊与分析增强（已完成）
+### V1.3 — Workshop & analytics enhancements (done)
 
-- [x] **工坊题目内联编辑**：4 题型 + 难度 + 收藏 + 启用 + 软删，删除二次确认
-- [x] **每库 FSRS 参数调优**：开关 / 留存率滑块 / 新题数 / 复习上限
-- [x] **CSV / Anki 导出**：CSV 与导入兼容（带 BOM），Anki TSV 带 `#deck` / `#tags column` 头部
-- [x] **分析页 365 天热力图**：GitHub 风格 4 色阶，月份 / 周标签，tooltip
+- [x] **Inline question editing**: 4 types + difficulty + star + enable + soft-delete, with delete confirmation
+- [x] **Per-bank FSRS tuning**: toggle / retention slider / new-cards-per-day / review cap
+- [x] **CSV / Anki export**: CSV import-compatible (with BOM), Anki TSV with `#deck` / `#tags` column headers
+- [x] **Analytics 365-day heatmap**: GitHub-style 4-color scale, month/week labels, tooltip
 
-### V1.4 — 官方题库按需加载（已完成）
+### V1.4 — Official banks on-demand (done)
 
-- [x] **内置官方题库**：4 个题库（FSRS / 中国地理 / TypeScript / Python）以 Markdown 静态文件随仓库分发，`manifest.json` 索引
-- [x] **按需加载 UI**：`/workshop` → "官方题库"对话框 → 点击加载，不点不占数据库
-- [x] **seed 精简化**：不再自动插入题库，只创建 demo 用户 + FSRS 参数
+- [x] **Built-in official banks**: 4 banks (FSRS / China geography / TypeScript / Python) shipped as Markdown static files with `manifest.json` index
+- [x] **On-demand load UI**: `/workshop` → "Official Banks" dialog → click to load; no database footprint until loaded
+- [x] **Slimmed seed**: no longer auto-inserts banks, only creates the demo user + FSRS params
 
-### V1.4.1 — 生产化加固（已完成）
+### V1.4.1 — Production hardening (done)
 
-- [x] **Docker 一键部署**：多阶段 Dockerfile + docker-compose（app + db + 可选 caddy）+ docker-entrypoint.sh + `/api/health` 探活
-- [x] **3 个 Critical 修复**：FSRS State 字符串/数字类型不匹配导致调度失效、题库删除外键级联缺失、apply 无幂等保护
-- [x] **6 个 High 修复**：analytics N+1 查询（365 次 → 1 次）、错题本 errorReason 写入、IP 信任链安全、grade 重复计数、timeSpentSec 越界 clamp、forgot-password 错误码
-- [x] **49 个单元测试**：判分 13 + FSRS 状态映射 19 + 解析器 17，CI 必跑
-- [x] **CI 加固**：新增 `test:unit` 步骤 + `docker-build` job 验证 Dockerfile 可构建
+- [x] **Docker one-click deploy**: multi-stage Dockerfile + docker-compose (app + db + optional caddy) + docker-entrypoint.sh + `/api/health` probe
+- [x] **3 Critical fixes**: FSRS State string/numeric type mismatch breaking scheduling, missing FK cascade on bank deletion, no idempotency on apply
+- [x] **6 High fixes**: analytics N+1 query (365 → 1), wrong-book errorReason persistence, IP trust-chain security, grade double-counting, timeSpentSec clamp, forgot-password status code
+- [x] **49 unit tests**: grading 13 + FSRS state mapping 19 + parsers 17, CI mandatory
+- [x] **CI hardening**: new `test:unit` step + `docker-build` job verifying Dockerfile builds
 
-### V2 — AI 智能体
+### V2 — AI agent
 
-- [ ] 上传资料 → 智能体自动生成题库
-- [ ] 知识点自动打标
-- [ ] 难度基于答题数据自动校准
-- [ ] 基于个人复习日志的 FSRS 权重优化器
+- [ ] Upload materials → agent auto-generates question banks
+- [ ] Auto-tagging of knowledge points
+- [ ] Difficulty auto-calibration from answer data
+- [ ] Personal FSRS weight optimizer based on review logs
 
-### V3 — 多端
+### V3 — Multi-platform
 
-- [ ] 微信小程序版本（共享 API + 设计 token）
-- [ ] 移动端 PWA 调优
-- [ ] 题库公开分享（只读链接）
+- [ ] WeChat mini-program (shared API + design tokens)
+- [ ] Mobile PWA tuning
+- [ ] Public bank sharing (read-only links)
 
 ---
 
-## 贡献
+## Contributing
 
-欢迎提 issue 和 PR。提 PR 之前请先看 [CONTRIBUTING.md](CONTRIBUTING.md)——里面写了代码风格、提交规范、Quiz 逻辑路由规则（所有判分走 `src/lib/quiz/grading.ts`，所有 FSRS 调度走 `src/lib/fsrs.ts`，别在 route handler 里直接调 `ts-fsrs`）。
+Issues and PRs welcome. Before opening a PR, read [CONTRIBUTING.md](CONTRIBUTING.md) — it covers code style, commit conventions, and the quiz-logic routing rules (all grading goes through `src/lib/quiz/grading.ts`, all FSRS scheduling through `src/lib/fsrs.ts`; don't call `ts-fsrs` directly from route handlers).
 
-行为规范看 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。安全问题看 [SECURITY.md](SECURITY.md)——别开 public issue，按里面的流程私报。
+See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for conduct. For security issues, see [SECURITY.md](SECURITY.md) — do not open a public issue; follow the private disclosure process.
 
 ---
 
 ## License
 
-MIT，详见 [LICENSE](LICENSE)。
+MIT — see [LICENSE](LICENSE).

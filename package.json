@@ -1,8 +1,8 @@
 {
   "name": "compass",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "private": false,
-  "description": "Compass · 自托管的间隔重复刷题工具，以航海仪器为美学隐喻，基于 FSRS-6 算法",
+  "description": "Compass · A self-hosted spaced-repetition quiz tool powered by the FSRS-6 algorithm. Import Markdown/Excel/Word banks, answer in a keyboard-driven cockpit, let the algorithm schedule reviews. A modern self-hosted Anki alternative.",
   "license": "MIT",
   "author": "Compass Contributors",
   "homepage": "https://gitcode.com/badhope/compass#readme",
