@@ -4,15 +4,11 @@
 
 <h1 align="center">Compass · Quiz Compass</h1>
 
-<p align="center">
-  A self-hosted spaced-repetition quiz tool powered by the FSRS-6 algorithm, wrapped in a nautical-instrument aesthetic.<br/>
-  Import Markdown / Excel / Word question banks → answer in a keyboard-driven cockpit → let the algorithm decide when each card comes back.
-</p>
+[English](README.md) | [中文](README.zh.md) | [日本語](README.ja.md)
 
 <p align="center">
-  <strong>English</strong> &nbsp;|&nbsp;
-  <a href="README.zh-CN.md">简体中文</a> &nbsp;|&nbsp;
-  <a href="README.ja.md">日本語</a>
+  A self-hosted spaced-repetition quiz tool powered by the FSRS-6 algorithm, with a nautical-instrument visual style.<br/>
+  Import Markdown / Excel / Word question banks → answer in a keyboard-driven cockpit → let the algorithm decide when each card comes back.
 </p>
 
 <p align="center">
@@ -44,12 +40,12 @@
 
 ## What is this
 
-Quiz tools are everywhere. Compass exists to solve two different problems:
+Compass addresses two problems that most quiz tools leave unresolved:
 
-1. **No vendor lock-in.** Your question banks belong to you — export them, edit them, switch tools. Compass treats banks as plain-text-friendly: Markdown reads like notes, Excel pastes right in, Word documents parse on drop. The database is PostgreSQL with a fully open schema; `pg_dump` and walk away anytime.
-2. **Stop computing review intervals yourself.** Anki's SM-2 algorithm dates to 1985; spaced repetition has moved on. Compass runs [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) implementing FSRS-6 (DSR model, 21 default weights), separating *how accurately I recalled* from *when this card returns* — you just press 1/2/3/4 to grade your recall, the algorithm handles the rest.
+1. **No vendor lock-in.** Your question banks belong to you: export them, edit them, switch tools. Compass keeps banks in plain-text-friendly formats — Markdown reads like notes, Excel pastes right in, Word documents parse on drop. The database is PostgreSQL with a fully open schema; run `pg_dump` and walk away anytime.
+2. **Stop computing review intervals yourself.** Anki's SM-2 algorithm dates to 1985; spaced repetition has moved on. Compass runs [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs), implementing FSRS-6 (DSR model, 21 default weights). It separates *how accurately you recalled* from *when the card returns* — press 1/2/3/4 to grade your recall, and the algorithm handles the scheduling.
 
-The nautical-instrument aesthetic exists because *compass / drift bottle / logbook* map naturally onto *guidance / mistake book / answer history*.
+The nautical naming — compass, drift bottle, logbook — maps onto the app's functions: guidance, mistake book, and answer history.
 
 > **Repository mirrors**
 > - Primary (GitCode): <https://gitcode.com/badhope/compass>

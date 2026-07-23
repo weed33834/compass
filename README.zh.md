@@ -4,15 +4,11 @@
 
 <h1 align="center">Compass · 刷题罗盘</h1>
 
-<p align="center">
-  自托管的间隔重复刷题工具，跑 FSRS-6 算法，长航海仪器的样子。<br/>
-  导入 Markdown / Excel / Word 题库 → 在键盘驱动的答题舱里做题 → 算法决定下一张卡什么时候回来。
-</p>
+[English](README.md) | [中文](README.zh.md) | [日本語](README.ja.md)
 
 <p align="center">
-  <a href="README.md">English</a> &nbsp;|&nbsp;
-  <strong>简体中文</strong> &nbsp;|&nbsp;
-  <a href="README.ja.md">日本語</a>
+  自托管的间隔重复刷题工具，基于 FSRS-6 算法，界面采用航海仪器风格。<br/>
+  导入 Markdown / Excel / Word 题库 → 在键盘驱动的答题舱里做题 → 由算法决定每张卡下次什么时候回来。
 </p>
 
 <p align="center">
@@ -46,12 +42,12 @@
 
 ## 这是什么
 
-刷题工具满大街都是，Compass 想解决的是另外两个问题：
+Compass 想解决多数刷题工具没处理的两个问题：
 
-1. **不想被某个 App 锁死。** 题库是你自己的，应该能自己导出、自己改、自己换工具。Compass 把题库做成纯文本友好——Markdown 写起来跟写笔记一样，Excel 直接贴，Word 文档拖进来就解析。数据库是 PostgreSQL，schema 全部开源，随时能 `pg_dump` 走人。
-2. **复习节奏不想自己算。** Anki 的 SM-2 算法是 1985 年的，间隔重复这二十年有进展。Compass 用 [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) 实现的 FSRS-6（DSR 模型，21 个默认权重），把"我答得多准"和"这张卡下次什么时候回来"两件事拆开——你只管按 1/2/3/4 给自己的回忆打分，剩下的交给算法。
+1. **不想被某个 App 锁死。** 题库是你自己的，应该能导出、能改、能换工具。Compass 把题库做成纯文本友好——Markdown 写起来跟写笔记一样，Excel 直接贴，Word 文档拖进来就解析。数据库是 PostgreSQL，schema 全部开源，随时 `pg_dump` 走人。
+2. **复习节奏不想自己算。** Anki 的 SM-2 算法是 1985 年的，间隔重复这二十年有进展。Compass 用 [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) 实现 FSRS-6（DSR 模型，21 个默认权重），把"我答得多准"和"这张卡下次什么时候回来"两件事拆开——你只管按 1/2/3/4 给自己的回忆打分，剩下的交给算法。
 
-界面长航海仪器的样子，是因为作者觉得"罗盘 / 漂流瓶 / 航海日志"这些词天然契合"指引方向 / 错题本 / 答题记录"的功能定位，顺手就做了。
+界面长航海仪器的样子，是因为"罗盘 / 漂流瓶 / 航海日志"这些词天然契合"指引方向 / 错题本 / 答题记录"的功能定位，顺手就做了。
 
 > **仓库镜像**
 > - 主仓库（GitCode）：<https://gitcode.com/badhope/compass>
@@ -87,7 +83,7 @@
 
 ## 两阶段提交
 
-为了避免重复调度 FSRS（用户覆盖默认评分时算两次），答题流被拆成两个 API：
+为避免重复调度 FSRS（用户覆盖默认评分时算两次），答题流被拆成两个 API：
 
 ```mermaid
 sequenceDiagram
