@@ -7,13 +7,69 @@ import { getAuthUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { defaultLocale, isLocale, type Locale } from "@/lib/i18n";
 
-const SITE_DESCRIPTION = "基于 FSRS-6 算法的自托管间隔重复刷题工具，以航海仪器为美学隐喻";
+const SITE_DESCRIPTION =
+  "Compass · 刷题罗盘 — 基于 FSRS-6 算法的自托管间隔重复刷题工具。导入 Markdown / Excel / Word 题库，键盘驱动答题，算法自动调度复习节奏。Anki 的现代自托管替代品。";
+
+const SITE_KEYWORDS = [
+  "Compass",
+  "刷题罗盘",
+  "间隔重复",
+  "spaced repetition",
+  "FSRS",
+  "FSRS-6",
+  "刷题",
+  "题库",
+  "错题本",
+  "记忆",
+  "复习",
+  "Anki 替代",
+  "Anki alternative",
+  "自托管",
+  "self-hosted",
+  "SuperMemo",
+  "flashcard",
+];
 
 export const metadata: Metadata = {
-  title: "Compass · 刷题罗盘",
+  title: {
+    default: "Compass · 刷题罗盘 — FSRS-6 自托管间隔重复刷题工具",
+    template: "%s · Compass 刷题罗盘",
+  },
   description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
   applicationName: "Compass",
   manifest: "/manifest.json",
+  authors: [{ name: "Compass Contributors" }],
+  creator: "Compass Contributors",
+  publisher: "Compass",
+  category: "education",
+  metadataBase: new URL("https://gitcode.com/badhope/compass"),
+  alternates: {
+    canonical: "https://gitcode.com/badhope/compass",
+  },
+  openGraph: {
+    type: "website",
+    locale: "zh_CN",
+    url: "https://gitcode.com/badhope/compass",
+    siteName: "Compass · 刷题罗盘",
+    title: "Compass · 刷题罗盘 — FSRS-6 自托管间隔重复刷题工具",
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Compass · 刷题罗盘",
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
     shortcut: ["/favicon.svg"],

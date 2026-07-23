@@ -13,7 +13,7 @@ Only the latest release on the `main` branch receives security updates. We do no
 
 **Do not open a public issue for security vulnerabilities.**
 
-Instead, report them privately via email. The maintainer will acknowledge receipt within 48 hours and provide a timeline for a fix.
+Instead, report them privately. The preferred channel is GitCode's private security advisory at <https://gitcode.com/badhope/compass/security/advisories/new>. Alternatively, email the maintainer directly — the contact email is listed on the maintainer's GitCode profile page. The maintainer will acknowledge receipt within 48 hours and provide a timeline for a fix.
 
 ### What to Include
 

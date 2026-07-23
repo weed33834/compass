@@ -2,6 +2,47 @@
 
 All notable changes to Compass are documented in this file. This project adheres to [Semantic Versioning](https://semver.org/) and [Conventional Commits](https://www.conventionalcommits.org/).
 
+## V1.4.2 — 2026-07-22
+
+### Changed — 依赖手动升级（最低限度自动化策略，无 Dependabot）
+
+所有依赖由 maintainer 手动评估后升级，CI 全绿验证通过。
+
+- **next** `16.2.10` → `16.2.11`（补丁）
+- **eslint-config-next** `16.2.10` → `16.2.11`（补丁）
+- **next-auth** `^4.24.10` → `^4.24.15`（补丁，安全修复）
+- **react / react-dom** `^19.2.7` → `^19.2.8`（补丁）
+- **lucide-react** `^1.23.0` → `^1.25.0`（小版本）
+- **@radix-ui/react-dialog / react-popover** `^1.1.19` → `^1.1.21`（补丁）
+- **@tailwindcss/postcss / tailwindcss** `^4.3.2` → `^4.3.3`（补丁）
+- **postcss** `^8.4.49` → `^8.5.22`（小版本）
+- **autoprefixer** `^10.4.20` → `^10.5.4`（小版本）
+- **tsx** `^4.23.0` → `^4.23.1`（补丁）
+- **@types/node** `^20.17.6` → `^22.10.0`（对齐 `engines.node >=22.13`，pnpm 11 要求）
+
+### Evaluated — 大版本升级评估（保守不升，记录理由）
+
+- **TypeScript 5.9 → 7.0**：实测升级后 `eslint-config-next` 16.2 依赖的 `@typescript-eslint/typescript-estree@8.63` 崩溃（`TypeError: Cannot read properties of undefined (reading 'Cjs')`），根因是 TS 7.0 移除了编译器 API（计划 7.1 提供），typescript-eslint 的 type-aware 规则无法运行。**保持 5.9.3**，待 eslint-config-next 适配 TS 7 后再升。
+- **ESLint 9 → 10**：ESLint 10 有配置格式与规则 breaking changes，eslint-config-next 16.2 对 ESLint 10 的兼容性未明确。**保持 9.x**。
+- **Prisma 5 → 7**：Prisma 6/7 涉及 generator 配置变更、client API 变更、迁移流程变更，需 PostgreSQL 实例跑 `migrate deploy` 验证。**保持 5.22.0**，待单独的升级分支完整测试 DB 集成后再升。
+
+### Added — 仓库可检索性（SEO / 发现性）
+
+- **`src/app/robots.ts`**：Next.js Metadata API 生成 `/robots.txt`，允许公开页（落地页 / 登录 / 注册）被索引，屏蔽鉴权后功能区与 `/api/`。
+- **`src/app/sitemap.ts`**：生成 `/sitemap.xml`，声明可索引的公开页面及更新频率。
+- **`src/app/layout.tsx` metadata 增强**：新增 `keywords`、`openGraph`、`twitter`、`robots`、`metadataBase`、`canonical`、`authors`、`creator`、`publisher`、`category`，title 改为 `default + template` 模式，提升搜索引擎与社交分享可检索性。
+- **`public/manifest.json` 增强**：新增 `scope` / `display_override` / `lang` / `dir` / `categories`，描述同步为完整版，icon 增加 SVG + `purpose`。
+- **`package.json` keywords 扩充**：从 19 个增至 43 个，新增 `free-spaced-repetition-scheduler` / `flashcards` / `learning` / `memorization` / `anki` / `supermemo` / `react19` / `docker` / 中文关键词（间隔重复 / 刷题 / 题库 / 复习 / 错题本）等，提升 npm 与代码搜索发现性。
+- **README 徽章**：新增 CI status badge（GitHub Actions）+ Version badge + React badge。
+- **README 技术栈表**：补全精确版本号，新增 Radix UI 与 Node.js 运行时行。
+
+### Changed — 文档完善
+
+- **`CONTRIBUTING.md`**：提交前检查清单补 `pnpm test:unit`；lint 规则说明改为"零 errors，warnings 仅接受 eslint.config.mjs 已记录的既有模式"。
+- **`SECURITY.md`**：漏洞上报渠道从模糊的"via email"改为明确指向 GitCode 私有安全通告页 + maintainer profile 邮箱。
+
+---
+
 ## V1.4.1 — 2026-07-22
 
 ### Fixed — Critical（阻断核心功能）

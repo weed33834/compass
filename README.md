@@ -11,6 +11,8 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-c89b3c.svg?style=flat-square" /></a>
+  <a href="https://github.com/weed33834/compass/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/weed33834/compass/ci.yml?branch=main&style=flat-square&label=CI" /></a>
+  <a href="https://gitcode.com/badhope/compass/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.4.2-c89b3c?style=flat-square" /></a>
   <img alt="Node.js" src="https://img.shields.io/badge/node-%E2%89%A522-0a0f14?style=flat-square&logo=node.js&logoColor=c89b3c" />
   <img alt="pnpm" src="https://img.shields.io/badge/pnpm-%E2%89%A59-c89b3c?style=flat-square&logo=pnpm&logoColor=0a0f14" />
   <img alt="PostgreSQL" src="https://img.shields.io/badge/postgresql-17-0a0f14?style=flat-square&logo=postgresql&logoColor=c89b3c" />
@@ -18,6 +20,7 @@
   <img alt="Prisma" src="https://img.shields.io/badge/prisma-5.22-c89b3c?style=flat-square&logo=prisma&logoColor=0a0f14" />
   <img alt="ts-fsrs" src="https://img.shields.io/badge/ts--fsrs-5.4-0a0f14?style=flat-square" />
   <img alt="TypeScript" src="https://img.shields.io/badge/typescript-5.9-3178c6?style=flat-square&logo=typescript&logoColor=white" />
+  <img alt="React" src="https://img.shields.io/badge/react-19-0a0f14?style=flat-square&logo=react&logoColor=c89b3c" />
   <img alt="Docker" src="https://img.shields.io/badge/docker-ready-c89b3c?style=flat-square&logo=docker&logoColor=0a0f14" />
 </p>
 
@@ -410,18 +413,20 @@ CI（`.github/workflows/ci.yml`）只做最低程度的自动化门禁，**不�
 
 | 层 | 选型 | 版本 |
 |---|---|---|
-| 框架 | Next.js (App Router) | 16.2 |
+| 框架 | Next.js (App Router) | 16.2.11 |
 | 语言 | TypeScript | 5.9 |
-| 样式 | Tailwind CSS | 4.3 |
+| 样式 | Tailwind CSS | 4.3.3 |
 | ORM | Prisma | 5.22 |
 | 数据库 | PostgreSQL | 17 |
-| 认证 | NextAuth.js | 4.24 |
+| 认证 | NextAuth.js | 4.24.15 |
 | 间隔重复 | ts-fsrs | 5.4 |
+| UI 原语 | Radix UI | 1.1.21 |
 | Excel 解析 | xlsx | 0.18 |
 | Word 解析 | mammoth | 1.12 |
 | 动画 | framer-motion | 12.42 |
-| 图标 | Lucide React | 1.23 |
+| 图标 | Lucide React | 1.25 |
 | 校验 | Zod | 4.4 |
+| 运行时 | Node.js | ≥22.13 |
 
 ---
 

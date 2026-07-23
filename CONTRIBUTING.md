@@ -51,10 +51,11 @@ pnpm dev
 ### Before Submitting
 
 1. Run `pnpm typecheck` — must pass with zero errors.
-2. Run `pnpm lint` — must pass with zero warnings.
-3. If you modified the database schema, run `pnpm db:generate` and commit the generated Prisma client code.
-4. If you added new functionality, consider adding test coverage.
-5. Rebase onto the latest `main` before opening a PR.
+2. Run `pnpm lint` — must pass with zero errors (warnings are accepted for pre-existing patterns documented in `eslint.config.mjs`, but new code should not add warnings).
+3. Run `pnpm test:unit` — all unit tests must pass.
+4. If you modified the database schema, run `pnpm db:generate` and commit the generated Prisma client code.
+5. If you added new functionality, consider adding test coverage.
+6. Rebase onto the latest `main` before opening a PR.
 
 ### Commit Style
 
