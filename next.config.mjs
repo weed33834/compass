@@ -35,6 +35,7 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
           },
+          { key: 'X-API-Version', value: 'v1' },
         ],
       },
     ];
