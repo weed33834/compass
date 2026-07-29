@@ -73,6 +73,11 @@ service-account*.json
 *.tmp
 *.temp
 cache/
+
+# AI development rules (managed by ai-rule repo, not part of source code)
+AGENTS.md
+CLAUDE.md
+GEMINI.md
 # Next.js generated
 next-env.d.ts
 
