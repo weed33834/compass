@@ -380,14 +380,22 @@ function EmptyFleet() {
       <Illustration name="empty-fleet" className="mx-auto h-40 w-40 text-brass/50" />
       <h3 className="mt-3 font-serif text-lg text-ivory">还没有题库</h3>
       <p className="mt-1 font-sans text-xs text-starlight">
-        先去造船工坊创建一个题库，或从文件导入
+        加载官方题库快速上手，或自行创建/导入题库
       </p>
-      <Link
-        href="/workshop"
-        className="mt-4 inline-flex h-9 items-center gap-2 rounded-md border border-brass bg-brass/10 px-4 text-sm font-medium text-brass hover:bg-brass/20"
-      >
-        <Layers className="h-4 w-4" /> 前往造船工坊
-      </Link>
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        <Link
+          href="/workshop?open=official"
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-brass bg-brass/10 px-4 text-sm font-medium text-brass hover:bg-brass/20"
+        >
+          <Sparkles className="h-4 w-4" /> 加载官方题库
+        </Link>
+        <Link
+          href="/workshop"
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-starlight/30 px-4 text-sm font-medium text-ivory hover:bg-brass/10"
+        >
+          <Layers className="h-4 w-4" /> 前往造船工坊
+        </Link>
+      </div>
     </div>
   );
 }

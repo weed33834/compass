@@ -11,6 +11,7 @@
 // 答题阶段可编辑，提交后父组件置 disabled
 
 import { useId } from "react";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import type { QuestionType, QuestionOption } from "./types";
 
 interface AnswerInputProps {
@@ -82,7 +83,7 @@ export function AnswerInput({
                 {opt.key}
               </span>
               <span className="flex-1 font-sans text-sm leading-relaxed text-ivory">
-                {opt.text}
+                <MarkdownRenderer content={opt.text} inline />
               </span>
               {isCorrect && (
                 <span className="text-f-emerald text-xs font-mono">✓ 正确</span>
@@ -148,7 +149,7 @@ export function AnswerInput({
                 {isSelected ? "✓" : opt.key}
               </span>
               <span className="flex-1 font-sans text-sm leading-relaxed text-ivory">
-                {opt.text}
+                <MarkdownRenderer content={opt.text} inline />
               </span>
               {isCorrect && <span className="text-f-emerald text-xs">正确</span>}
               {isWrong && <span className="text-f-coral2 text-xs">你选的</span>}

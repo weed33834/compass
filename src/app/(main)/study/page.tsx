@@ -20,6 +20,7 @@ import { Star, Clock, ArrowRight, RotateCcw, CheckCircle2, XCircle, Anchor, Hist
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/Button";
 import { Illustration } from "@/components/Illustration";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { AnswerInput } from "./AnswerInput";
 import { RatingBar } from "./RatingBar";
 import {
@@ -522,9 +523,7 @@ function StudyContent() {
       <div key={currentItem.reviewItemId} className="rounded-2xl border border-starlight/15 bg-abyss-50/30 p-6 sm:p-8">
         {/* 题干 */}
         <div className="mb-6">
-          <pre className="whitespace-pre-wrap break-words font-sans text-base leading-relaxed text-ivory">
-            {currentItem.stem}
-          </pre>
+          <MarkdownRenderer content={currentItem.stem} />
           {currentItem.knowledgePoints.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {currentItem.knowledgePoints.map((kp) => (
@@ -613,9 +612,7 @@ function StudyContent() {
               {submitResult.explanation && (
                 <div className="mt-3 border-t border-starlight/10 pt-3">
                   <p className="mb-1 font-sans text-xs text-starlight">解析</p>
-                  <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-ivory/90">
-                    {submitResult.explanation}
-                  </pre>
+                  <MarkdownRenderer content={submitResult.explanation} />
                 </div>
               )}
               {submitResult.knowledgePoints.length > 0 && (
