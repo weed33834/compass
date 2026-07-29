@@ -236,7 +236,7 @@ export default function BankDetailPage() {
 
       {/* 统计条 */}
       {bank && (
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="题目总数" value={bank.totalQuestions} color="brass" />
           <StatCard label="待复习" value={bank.dueCount} color="coral" />
           <StatCard label="每日新题" value={bank.newCardsPerDay} color="tide" />

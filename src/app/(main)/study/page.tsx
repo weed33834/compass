@@ -396,7 +396,7 @@ function StudyContent() {
             上次保存于 {savedAtStr}
           </p>
 
-          <div className="mt-5 grid grid-cols-3 gap-3">
+          <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-starlight/15 bg-abyss-700/40 p-3">
               <p className="font-serif text-xl text-brass">{total}</p>
               <p className="mt-0.5 font-sans text-[10px] text-starlight">总题数</p>

@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Plus,
   Upload,
@@ -58,6 +59,7 @@ function coverClass(color: string): string {
 }
 
 export default function WorkshopPage() {
+  const searchParams = useSearchParams();
   const [banks, setBanks] = useState<BankListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -66,7 +68,7 @@ export default function WorkshopPage() {
   // 新建/导入对话框
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
-  const [showOfficial, setShowOfficial] = useState(false);
+  const [showOfficial, setShowOfficial] = useState(searchParams.get("open") === "official");
 
   const loadBanks = useCallback(async () => {
     setLoading(true);
@@ -611,7 +613,7 @@ function ModalShell({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-brass/30 bg-abyss-300/95 p-6 shadow-2xl"
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-brass/30 bg-abyss-300/95 p-4 shadow-2xl sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
