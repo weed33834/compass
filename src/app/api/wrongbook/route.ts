@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/api";
 import { parseJsonBody } from "@/lib/parse-body";
+import { ErrorCode, ApiError } from "@/lib/errors";
 import type { ErrorReason } from "@prisma/client";
 
 interface UpdateWrongItemBody {
@@ -88,13 +89,13 @@ export async function PATCH(request: NextRequest) {
 
   const body = await parseJsonBody<UpdateWrongItemBody>(request);
   if (!body || !body.reviewItemId) {
-    return NextResponse.json({ error: "缺少 reviewItemId" }, { status: 400 });
+    return ApiError.toResponse(ErrorCode.MISSING_FIELD, "缺少 reviewItemId");
   }
 
   const item = await prisma.reviewItem.findFirst({
     where: { id: body.reviewItemId, userId: auth.userId },
   });
-  if (!item) return NextResponse.json({ error: "错题不存在" }, { status: 404 });
+  if (!item) return ApiError.toResponse(ErrorCode.NOT_FOUND, "错题不存在");
 
   if (body.remove) {
     // 从错题本移除：重置错时戳（lapses 保留作历史，错题本过滤 lapses > 0 也会排除）

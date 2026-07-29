@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiUser, assertRateLimit } from "@/lib/api";
+import { ErrorCode, ApiError } from "@/lib/errors";
 import { randomUUID } from "crypto";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -44,21 +45,21 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file");
     if (!file || !(file instanceof File)) {
-      return NextResponse.json({ error: "未找到上传文件" }, { status: 400 });
+      return ApiError.toResponse(ErrorCode.MISSING_FIELD, "未找到上传文件");
     }
 
     contentType = file.type;
     if (!ALLOWED_TYPES.includes(contentType)) {
-      return NextResponse.json(
-        { error: `不支持的文件类型: ${contentType}。允许: ${ALLOWED_TYPES.join(", ")}` },
-        { status: 400 }
+      return ApiError.toResponse(
+        ErrorCode.UNSUPPORTED_TYPE,
+        `不支持的文件类型: ${contentType}。允许: ${ALLOWED_TYPES.join(", ")}`
       );
     }
 
     if (file.size > MAX_SIZE) {
-      return NextResponse.json(
-        { error: `文件过大 (${(file.size / 1024 / 1024).toFixed(1)}MB)，最大 10MB` },
-        { status: 400 }
+      return ApiError.toResponse(
+        ErrorCode.FILE_TOO_LARGE,
+        `文件过大 (${(file.size / 1024 / 1024).toFixed(1)}MB)，最大 10MB`
       );
     }
 
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     const ext = contentTypeToExt(contentType, file.name);
     fileName = `${randomUUID()}${ext}`;
   } catch {
-    return NextResponse.json({ error: "请求解析失败" }, { status: 400 });
+    return ApiError.toResponse(ErrorCode.BAD_REQUEST, "请求解析失败");
   }
 
   // 写入 public/uploads/（Next.js 直接对外提供静态文件）
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
     await writeFile(join(UPLOAD_DIR, fileName), Buffer.from(buffer));
   } catch (err) {
     console.error("[upload] 写文件失败:", err);
-    return NextResponse.json({ error: "上传失败，请重试" }, { status: 500 });
+    return ApiError.toResponse(ErrorCode.INTERNAL_ERROR, "上传失败，请重试");
   }
 
   const url = `/uploads/${fileName}`;

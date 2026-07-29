@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser, assertRateLimit } from "@/lib/api";
 import { parseJsonBody } from "@/lib/parse-body";
+import { ErrorCode, ApiError } from "@/lib/errors";
 import { gradeQuestion } from "@/lib/quiz/grading";
 import {
   dbRowToCard,
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
 
   const body = await parseJsonBody<GradeBody>(request);
   if (!body || !body.reviewItemId) {
-    return NextResponse.json({ error: "缺少 reviewItemId" }, { status: 400 });
+    return ApiError.toResponse(ErrorCode.MISSING_FIELD, "缺少 reviewItemId");
   }
 
   const reviewItem = await prisma.reviewItem.findFirst({
@@ -50,10 +51,10 @@ export async function POST(request: NextRequest) {
     include: { question: true, bank: true },
   });
   if (!reviewItem) {
-    return NextResponse.json({ error: "复习卡不存在" }, { status: 404 });
+    return ApiError.toResponse(ErrorCode.NOT_FOUND, "复习卡不存在");
   }
   if (reviewItem.question.isDisabled) {
-    return NextResponse.json({ error: "题目已下架" }, { status: 400 });
+    return ApiError.toResponse(ErrorCode.BAD_REQUEST, "题目已下架");
   }
 
   // 1. 判分
