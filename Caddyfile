@@ -1,0 +1,21 @@
+# Caddyfile — Compass HTTPS 反代（生产环境使用）
+# 用法：
+#   1. 在 .env 中设置 DOMAIN=your-domain.com
+#   2. 在 docker-compose.yml 中取消 caddy 服务的注释
+#   3. docker compose up -d
+#
+# Caddy 自动申请和管理 Let's Encrypt 证书
+
+{$DOMAIN:compass.local} {
+    reverse_proxy app:3000
+
+    encode gzip
+
+    # 安全头
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+}
