@@ -1,6 +1,8 @@
 'use client';
 
 import { Suspense, useState, type FormEvent, type ReactNode } from 'react';
+import { DeviceBranch } from "@/components/DeviceBranch";
+import { MobileAuth } from "@/components/mobile/MobileAuth";
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
@@ -149,17 +151,25 @@ function Shell({ children }: { children: ReactNode }) {
 }
 
 export default function ResetPasswordPage() {
-  // useSearchParams 需在 Suspense 边界内使用
   return (
-    <Suspense
-      fallback={
-        <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-abyss px-6 py-12">
-          <CompassRose className="animate-spin-slow pointer-events-none absolute left-1/2 top-1/2 h-[125vmin] w-[125vmin] -translate-x-1/2 -translate-y-1/2 text-starlight opacity-[0.05]" />
-          <p className="relative z-10 font-sans text-starlight">加载中…</p>
-        </main>
+    <DeviceBranch
+      mobile={
+        <Suspense fallback={<div className="min-h-screen bg-abyss" />}>
+          <MobileAuth mode="reset" />
+        </Suspense>
       }
-    >
-      <ResetPasswordContent />
-    </Suspense>
+      desktop={
+        <Suspense
+          fallback={
+            <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-abyss px-6 py-12">
+              <CompassRose className="animate-spin-slow pointer-events-none absolute left-1/2 top-1/2 h-[125vmin] w-[125vmin] -translate-x-1/2 -translate-y-1/2 text-starlight opacity-[0.05]" />
+              <p className="relative z-10 font-sans text-starlight">加载中…</p>
+            </main>
+          }
+        >
+          <ResetPasswordContent />
+        </Suspense>
+      }
+    />
   );
 }

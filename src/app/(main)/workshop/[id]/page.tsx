@@ -1,5 +1,8 @@
 "use client";
 
+import { DeviceBranch } from "@/components/DeviceBranch";
+import { MobileBankDetail } from "./MobileBankDetail";
+
 // 题库详情：列出题目 + 答题入口 + 题目内联编辑 + FSRS 调优 + 导出
 // 路由：/workshop/[id]
 //
@@ -70,6 +73,15 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function BankDetailPage() {
+  return (
+    <DeviceBranch
+      mobile={<MobileBankDetail />}
+      desktop={<BankDetailPageDesktop />}
+    />
+  );
+}
+
+function BankDetailPageDesktop() {
   const params = useParams();
   const bankId = String(params.id);
 

@@ -1,5 +1,8 @@
 "use client";
 
+import { DeviceBranch } from "@/components/DeviceBranch";
+import { MobileCompass } from "./MobileCompass";
+
 // 罗盘首页：刷题总览
 // 路由：/compass
 //
@@ -65,6 +68,15 @@ const COVER_GRADIENTS: Record<string, string> = {
 const ONBOARDING_KEY = "compass:onboarding-v1.1-dismissed";
 
 export default function CompassPage() {
+  return (
+    <DeviceBranch
+      mobile={<MobileCompass />}
+      desktop={<CompassPageDesktop />}
+    />
+  );
+}
+
+function CompassPageDesktop() {
   const [banks, setBanks] = useState<BankListItem[]>([]);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);

@@ -23,6 +23,8 @@ import { Illustration } from "@/components/Illustration";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import { AnswerInput } from "./AnswerInput";
 import { RatingBar } from "./RatingBar";
+import { MobileStudy } from "./MobileStudy";
+import { DeviceBranch } from "@/components/DeviceBranch";
 import {
   CARD_STATE_LABELS,
   QUESTION_TYPE_LABELS,
@@ -89,15 +91,30 @@ function clearProgress() {
 
 export default function StudyPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <Anchor className="h-10 w-10 animate-pulse text-brass" />
-        </div>
+    <DeviceBranch
+      mobile={
+        <Suspense
+          fallback={
+            <div className="flex min-h-[60vh] items-center justify-center">
+              <Anchor className="h-10 w-10 animate-pulse text-brass" />
+            </div>
+          }
+        >
+          <MobileStudy />
+        </Suspense>
       }
-    >
-      <StudyContent />
-    </Suspense>
+      desktop={
+        <Suspense
+          fallback={
+            <div className="flex min-h-[60vh] items-center justify-center">
+              <Anchor className="h-10 w-10 animate-pulse text-brass" />
+            </div>
+          }
+        >
+          <StudyContent />
+        </Suspense>
+      }
+    />
   );
 }
 

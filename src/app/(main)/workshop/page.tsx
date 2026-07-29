@@ -1,5 +1,8 @@
 "use client";
 
+import { DeviceBranch } from "@/components/DeviceBranch";
+import { MobileWorkshop } from "./MobileWorkshop";
+
 // 造船工坊：题库管理
 // 路由：/workshop
 //
@@ -59,6 +62,15 @@ function coverClass(color: string): string {
 }
 
 export default function WorkshopPage() {
+  return (
+    <DeviceBranch
+      mobile={<MobileWorkshop />}
+      desktop={<WorkshopPageDesktop />}
+    />
+  );
+}
+
+function WorkshopPageDesktop() {
   const searchParams = useSearchParams();
   const [banks, setBanks] = useState<BankListItem[]>([]);
   const [loading, setLoading] = useState(true);

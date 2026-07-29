@@ -1,5 +1,8 @@
 "use client";
 
+import { DeviceBranch } from "@/components/DeviceBranch";
+import { MobileWrongbook } from "./MobileWrongbook";
+
 // 错题漂流瓶：列出 lapses > 0 的题目
 // 路由：/wrongbook
 //
@@ -60,6 +63,15 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function WrongbookPage() {
+  return (
+    <DeviceBranch
+      mobile={<MobileWrongbook />}
+      desktop={<WrongbookPageDesktop />}
+    />
+  );
+}
+
+function WrongbookPageDesktop() {
   const [items, setItems] = useState<WrongItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

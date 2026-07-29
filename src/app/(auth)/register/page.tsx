@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useId, useState, type FormEvent } from 'react';
+import { DeviceBranch } from "@/components/DeviceBranch";
+import { MobileAuth } from "@/components/mobile/MobileAuth";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
@@ -20,6 +22,19 @@ const oauthProviders = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS ?? '')
 
 // 注册页 —— 开始你的航程
 export default function RegisterPage() {
+  return (
+    <DeviceBranch
+      mobile={
+        <Suspense fallback={<div className="min-h-screen bg-abyss" />}>
+          <MobileAuth mode="register" />
+        </Suspense>
+      }
+      desktop={<RegisterPageDesktop />}
+    />
+  );
+}
+
+function RegisterPageDesktop() {
   const router = useRouter();
   const { status } = useSession();
   const { t } = useTranslation();

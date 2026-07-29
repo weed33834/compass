@@ -1,5 +1,8 @@
 "use client";
 
+import { DeviceBranch } from "@/components/DeviceBranch";
+import { MobileLogbook } from "./MobileLogbook";
+
 // 航海日志：答题历史时间线
 // 路由：/logbook
 //
@@ -50,6 +53,15 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function LogbookPage() {
+  return (
+    <DeviceBranch
+      mobile={<MobileLogbook />}
+      desktop={<LogbookPageDesktop />}
+    />
+  );
+}
+
+function LogbookPageDesktop() {
   const [records, setRecords] = useState<LogRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

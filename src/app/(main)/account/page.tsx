@@ -1,5 +1,8 @@
 "use client";
 
+import { DeviceBranch } from "@/components/DeviceBranch";
+import { MobileAccount } from "./MobileAccount";
+
 // 账户中心
 // 路由：/account
 //
@@ -27,6 +30,15 @@ import { Button } from "@/components/ui/Button";
 type Theme = "deep-sea" | "parchment";
 
 export default function AccountPage() {
+  return (
+    <DeviceBranch
+      mobile={<MobileAccount />}
+      desktop={<AccountPageDesktop />}
+    />
+  );
+}
+
+function AccountPageDesktop() {
   const { data: session } = useSession();
   const [theme, setTheme] = useState<Theme>("deep-sea");
   const [createdAt, setCreatedAt] = useState<string>("");

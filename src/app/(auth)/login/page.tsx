@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useId, useState, type FormEvent } from 'react';
+import { DeviceBranch } from "@/components/DeviceBranch";
+import { MobileAuth } from "@/components/mobile/MobileAuth";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
@@ -19,6 +21,19 @@ const oauthProviders = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS ?? '')
 
 // 登录页 —— 欢迎回来
 export default function LoginPage() {
+  return (
+    <DeviceBranch
+      mobile={
+        <Suspense fallback={<div className="min-h-screen bg-abyss" />}>
+          <MobileAuth mode="login" />
+        </Suspense>
+      }
+      desktop={<LoginPageDesktop />}
+    />
+  );
+}
+
+function LoginPageDesktop() {
   const router = useRouter();
   const { status } = useSession();
   const { t } = useTranslation();

@@ -1,6 +1,8 @@
 'use client';
 
-import { useId, useState, type FormEvent } from 'react';
+import { Suspense, useId, useState, type FormEvent } from 'react';
+import { DeviceBranch } from "@/components/DeviceBranch";
+import { MobileAuth } from "@/components/mobile/MobileAuth";
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { CompassRose } from '@/components/CompassRose';
@@ -9,6 +11,19 @@ import { AuthLanguageSwitcher } from '@/components/i18n/AuthLanguageSwitcher';
 
 // 忘记密码页 —— 重置密码
 export default function ForgotPasswordPage() {
+  return (
+    <DeviceBranch
+      mobile={
+        <Suspense fallback={<div className="min-h-screen bg-abyss" />}>
+          <MobileAuth mode="forgot" />
+        </Suspense>
+      }
+      desktop={<ForgotPasswordPageDesktop />}
+    />
+  );
+}
+
+function ForgotPasswordPageDesktop() {
   const { t } = useTranslation();
   // 为 input 生成稳定唯一 id，使 <label htmlFor> 与 <input id> 关联（a11y）
   const emailId = useId();

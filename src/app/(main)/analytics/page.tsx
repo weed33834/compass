@@ -1,5 +1,8 @@
 "use client";
 
+import { DeviceBranch } from "@/components/DeviceBranch";
+import { MobileAnalytics } from "./MobileAnalytics";
+
 // 航迹分析：学情仪表盘
 // 路由：/analytics
 //
@@ -64,6 +67,15 @@ const STATE_LABELS: Record<string, string> = {
 };
 
 export default function AnalyticsPage() {
+  return (
+    <DeviceBranch
+      mobile={<MobileAnalytics />}
+      desktop={<AnalyticsPageDesktop />}
+    />
+  );
+}
+
+function AnalyticsPageDesktop() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [typeStats, setTypeStats] = useState<TypeStat[]>([]);

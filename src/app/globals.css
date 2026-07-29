@@ -266,3 +266,42 @@
 .animate-compass-spin {
   animation: compass-spin 60s linear infinite;
 }
+
+/* ===== 移动端辅助类（与桌面独立的触控/安全区体系） ===== */
+:root {
+  /* 底部导航高度 + 安全区补偿，供 .pb-mobile-nav / 移动壳层使用 */
+  --mobile-nav-h: 60px;
+  --mobile-nav-h-safe: calc(60px + env(safe-area-inset-bottom));
+}
+
+@layer utilities {
+  /* iOS/Android 安全区适配 */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* 主内容区为底部导航预留空间（含安全区） */
+  .pb-mobile-nav {
+    padding-bottom: var(--mobile-nav-h-safe);
+  }
+  /* 最小触控目标：iOS HIG / Material 建议 ≥ 44px */
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* 隐藏滚动条（移动端卡片横向滑动等场景） */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  /* 横向滑动容器 */
+  .scroll-x {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
