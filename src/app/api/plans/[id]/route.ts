@@ -38,7 +38,7 @@ export async function PATCH(
   if (auth.errorResponse) return auth.errorResponse;
 
   const { id } = await params;
-  const body = await parseJsonBody(request);
+  const body = await parseJsonBody<Record<string, unknown>>(request);
   if (!body) return NextResponse.json({ error: "请求体为空" }, { status: 400 });
 
   const existing = await prisma.learningPlan.findFirst({
@@ -55,17 +55,18 @@ export async function PATCH(
     }
     data.title = body.title.trim();
   }
-  if (body.bankId !== undefined) data.bankId = body.bankId || null;
-  if (body.startDate !== undefined) data.startDate = new Date(body.startDate);
-  if (body.endDate !== undefined) data.endDate = new Date(body.endDate);
+  if (body.bankId !== undefined) data.bankId = typeof body.bankId === "string" ? body.bankId.trim() || null : null;
+  if (body.startDate !== undefined) data.startDate = new Date(String(body.startDate));
+  if (body.endDate !== undefined) data.endDate = new Date(String(body.endDate));
   if (body.dailyNewCards !== undefined) data.dailyNewCards = Number(body.dailyNewCards);
   if (body.dailyReviewCap !== undefined) data.dailyReviewCap = Number(body.dailyReviewCap);
   if (body.desiredRetention !== undefined) data.desiredRetention = Number(body.desiredRetention);
   if (body.status !== undefined) {
-    if (!["ACTIVE", "PAUSED", "COMPLETED", "ARCHIVED"].includes(body.status)) {
+    const status = String(body.status);
+    if (!["ACTIVE", "PAUSED", "COMPLETED", "ARCHIVED"].includes(status)) {
       return NextResponse.json({ error: "无效的计划状态" }, { status: 400 });
     }
-    data.status = body.status;
+    data.status = status;
   }
 
   const plan = await prisma.learningPlan.update({

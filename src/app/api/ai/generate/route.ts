@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { requireApiUser, assertRateLimit } from "@/lib/api";
 import { parseJsonBody } from "@/lib/parse-body";
 import { ErrorCode, ApiError } from "@/lib/errors";
@@ -109,23 +110,22 @@ export async function POST(request: NextRequest) {
   const now = new Date();
   const maxSort = await prisma.question.aggregate({
     where: { bankId },
-    _max: { sortOrder: true },
+    _max: { position: true },
   });
-  let nextSort = (maxSort._max.sortOrder ?? -1) + 1;
+  let nextSort = (maxSort._max.position ?? -1) + 1;
 
   const createdQuestions = [];
   for (const q of questions) {
     const question = await prisma.question.create({
       data: {
         bankId,
-        userId: auth.userId,
         type: q.type,
         stem: q.stem,
         options: q.options as Prisma.InputJsonValue,
         answer: q.answer as Prisma.InputJsonValue,
         explanation: q.explanation,
         knowledgePoints: q.knowledgePoints,
-        sortOrder: nextSort++,
+        position: nextSort++,
         source: "AGENT_GENERATED",
       },
     });
