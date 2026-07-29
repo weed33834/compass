@@ -12,6 +12,23 @@
   "lang": "zh-CN",
   "dir": "ltr",
   "categories": ["education", "productivity", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "开始刷题",
+      "short_name": "刷题",
+      "description": "进入今日答题队列",
+      "url": "/study",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "题库工坊",
+      "short_name": "工坊",
+      "description": "管理你的题库",
+      "url": "/workshop",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -23,7 +40,7 @@
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/favicon.svg",
