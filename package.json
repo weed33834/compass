@@ -84,6 +84,8 @@
     "next": "16.2.11",
     "next-auth": "^4.24.15",
     "nodemailer": "^9.0.3",
+    "pino": "^9.7.0",
+    "pino-pretty": "^13.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "ts-fsrs": "^5.4.1",

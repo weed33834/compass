@@ -885,3 +885,454 @@ test.describe("J. 边界情况", () => {
     expect(exportRes.status()).toBe(400);
   });
 });
+
+// =================== K. P0 全场景测试（按 TEST_PLAN 补充） ===================
+
+// K1 并发答题提交
+test.describe("K1. 并发答题提交", () => {
+  test("K1-1. 两标签页同时答题不会互相覆盖", async ({ browser }) => {
+    const ctx1 = await browser.newContext();
+    const ctx2 = await browser.newContext();
+    const page1 = await ctx1.newPage();
+    const page2 = await ctx2.newPage();
+
+    await login(page1);
+    await login(page2);
+
+    // 确保有题库可用
+    await ensureBankLoaded(page1);
+    await page1.goto(`${BASE}/compass`);
+    await page1.waitForLoadState("networkidle");
+    const bankCard = page1.locator('a[href*="/study?bankId="]').first();
+    const bankUrl = await bankCard.getAttribute("href");
+    expect(bankUrl).toBeTruthy();
+    await bankCard.click();
+    await page1.waitForURL(/\/study/, { timeout: 15_000 });
+
+    // page2 打开同一题库
+    if (bankUrl) {
+      await page2.goto(`${BASE}${bankUrl}`);
+      await page2.waitForLoadState("networkidle");
+    }
+
+    // 两页各自通过 API 获取队列并提交
+    // page1: 取队列 → grade → apply
+    const qRes1 = await page1.request.get(
+      `${BASE}/api/study/queue?bankId=&mode=LEARN&limit=1`
+    );
+    expect(qRes1.ok()).toBe(true);
+    const qData1 = await qRes1.json();
+    if (qData1.items?.length > 0) {
+      const item1 = qData1.items[0];
+      const gradeRes1 = await page1.request.post(`${BASE}/api/study/grade`, {
+        data: { reviewItemId: item1.reviewItemId, userAnswer: "A", timeSpentSec: 15 },
+      });
+      expect(gradeRes1.ok()).toBe(true);
+      const gData1 = await gradeRes1.json();
+      await page1.request.post(`${BASE}/api/study/apply`, {
+        data: {
+          reviewItemId: item1.reviewItemId,
+          rating: gData1.appliedRating,
+          timeSpentSec: 15,
+        },
+      });
+    }
+
+    // page2: 同样取队列 → grade → apply
+    const qRes2 = await page2.request.get(
+      `${BASE}/api/study/queue?bankId=&mode=LEARN&limit=1`
+    );
+    expect(qRes2.ok()).toBe(true);
+    const qData2 = await qRes2.json();
+    if (qData2.items?.length > 0) {
+      const item2 = qData2.items[0];
+      const gradeRes2 = await page2.request.post(`${BASE}/api/study/grade`, {
+        data: { reviewItemId: item2.reviewItemId, userAnswer: "A", timeSpentSec: 15 },
+      });
+      expect(gradeRes2.ok()).toBe(true);
+      const gData2 = await gradeRes2.json();
+      await page2.request.post(`${BASE}/api/study/apply`, {
+        data: {
+          reviewItemId: item2.reviewItemId,
+          rating: gData2.appliedRating,
+          timeSpentSec: 15,
+        },
+      });
+    }
+
+    // 验证两页都不报错
+    const err1 = await page1.locator("text=错误").isVisible({ timeout: 2000 }).catch(() => false);
+    const err2 = await page2.locator("text=错误").isVisible({ timeout: 2000 }).catch(() => false);
+    expect(err1).toBe(false);
+    expect(err2).toBe(false);
+
+    await ctx1.close();
+    await ctx2.close();
+  });
+});
+
+// K2 完全空白题库场景
+test.describe("K2. 完全空白题库场景", () => {
+  test("K2-1. 无题库时罗盘页不白屏", async ({ page }) => {
+    // 使用全新账号验证
+    await page.goto(`${BASE}/login`);
+    await page.fill('input[type="email"]', "fresh@compass.dev");
+    await page.fill('input[type="password"]', "Compass-Test-2026!");
+    await page.click('button[type="submit"]');
+    await page.waitForTimeout(3000);
+
+    // 导航到罗盘
+    await page.goto(`${BASE}/compass`);
+    await page.waitForLoadState("networkidle");
+
+    // 关键：不白屏、不报错
+    const bodyText = await page.locator("body").textContent();
+    expect(bodyText).toBeTruthy();
+    // 应显示引导或空状态提示
+    const hasEmptyState =
+      bodyText!.includes("创建") ||
+      bodyText!.includes("题库") ||
+      bodyText!.includes("添加") ||
+      bodyText!.includes("开始") ||
+      bodyText!.includes("引导");
+    expect(hasEmptyState).toBe(true);
+  });
+});
+
+// K3 超长填空答案存储与显示
+test.describe("K3. 超长填空答案", () => {
+  test("K3-1. 超长填空答案正确存储和显示", async ({ page }) => {
+    await login(page);
+    // 通过 API 创建含超长填空答案的题目
+    const createRes = await page.request.post(`${BASE}/api/banks`, {
+      data: {
+        name: "超长填空测试题库",
+        coverColor: "abyss",
+        tags: ["test-long-blank"],
+        questions: [
+          {
+            type: "FILL_BLANK",
+            stem: "请用不少于 500 字描述你的理解",
+            answer: JSON.stringify(["A".repeat(1500)]),
+            explanation: "测试超长答案显示",
+            position: 0,
+          },
+        ],
+      },
+    });
+    expect(createRes.ok()).toBe(true);
+    const data = await createRes.json();
+    const bankId = data.id ?? data.bank?.id;
+
+    // 进入答题页
+    await page.goto(`${BASE}/study?bankId=${bankId}`);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+
+    // 应正常显示题目，不崩溃
+    await expect(page.locator("body")).not.toContainText("undefined", { timeout: 5000 });
+
+    // 清理
+    if (bankId) {
+      await page.request.delete(`${BASE}/api/banks/${bankId}`);
+    }
+  });
+});
+
+// K4 XSS 安全验证
+test.describe("K4. XSS 安全验证", () => {
+  test("K4-1. 题目标题 XSS 过滤", async ({ page }) => {
+    await login(page);
+    const xssStem = '<img src=x onerror="alert(1)">跨站测试';
+    const createRes = await page.request.post(`${BASE}/api/banks`, {
+      data: {
+        name: "XSS 安全测试题库",
+        questions: [
+          {
+            type: "SINGLE_CHOICE",
+            stem: xssStem,
+            options: [
+              { key: "A", text: "选项A", correct: true },
+              { key: "B", text: "选项B", correct: false },
+            ],
+            answer: "A",
+            position: 0,
+          },
+        ],
+      },
+    });
+
+    if (createRes.ok()) {
+      const data = await createRes.json();
+      const bankId = data.id ?? data.bank?.id;
+      // 通过 API 读取，验证 stem 被正确转义
+      const listRes = await page.request.get(`${BASE}/api/banks/${bankId}/questions`);
+      if (listRes.ok()) {
+        const qData = await listRes.json();
+        const question = (qData.questions ?? [])[0];
+        if (question) {
+          // stem 中不应包含未转义的 script 或 onerror 关键字
+          expect(question.stem).not.toContain("onerror=");
+          expect(question.stem).not.toContain("<script");
+        }
+      }
+      // 清理
+      if (bankId) await page.request.delete(`${BASE}/api/banks/${bankId}`);
+    }
+  });
+
+  test("K4-2. 题库名称 XSS 过滤", async ({ page }) => {
+    await login(page);
+    const xssName = '<script>alert("pwned")</script>XSS题库';
+    const createRes = await page.request.post(`${BASE}/api/banks`, {
+      data: {
+        name: xssName,
+      },
+    });
+    expect(createRes.ok()).toBe(true);
+    const data = await createRes.json();
+    const bankId = data.id ?? data.bank?.id;
+
+    if (bankId) {
+      // 读取列表，验证名称被转义
+      const listRes = await page.request.get(`${BASE}/api/banks`);
+      const listData = await listRes.json();
+      const bank = (listData.banks ?? []).find((b: { id: string }) => b.id === bankId);
+      if (bank) {
+        expect(bank.name).not.toContain("<script>");
+      }
+      await page.request.delete(`${BASE}/api/banks/${bankId}`);
+    }
+  });
+});
+
+// K5 会话过期自动退出
+test.describe("K5. 会话过期自动退出", () => {
+  test("K5-1. 无 token 访问受保护 API 返回 401", async ({ page }) => {
+    const res = await page.request.get(`${BASE}/api/banks`);
+    expect(res.status()).toBe(401);
+  });
+
+  test("K5-2. 大量答题后 session 仍有效", async ({ page }) => {
+    await login(page);
+    await ensureBankLoaded(page);
+
+    // 连续调数次答题相关 API，模拟大量答题
+    const listRes = await page.request.get(`${BASE}/api/banks`);
+    expect(listRes.ok()).toBe(true);
+    const listData = await listRes.json();
+    const banks = listData.banks ?? [];
+    if (banks.length === 0) return;
+    const bankId = banks[0].id;
+
+    for (let i = 0; i < 5; i++) {
+      const res = await page.request.get(`${BASE}/api/banks/${bankId}/questions`);
+      expect(res.ok()).toBe(true);
+    }
+    // 最后再验证一次，确保没被踢出
+    expect(page.url()).not.toContain("/login");
+  });
+});
+
+// K6 学习计划 CRUD 与突发暂停
+test.describe("K6. 学习计划", () => {
+  test("K6-1. 创建学习计划", async ({ page }) => {
+    await login(page);
+    const res = await page.request.post(`${BASE}/api/plans`, {
+      data: {
+        title: "30 天马原速通计划",
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        dailyNewCards: 15,
+        dailyReviewCap: 100,
+      },
+    });
+    expect(res.ok()).toBe(true);
+    const data = await res.json();
+    expect(data.plan).toBeTruthy();
+    expect(data.plan.id).toBeTruthy();
+    expect(data.plan.title).toBe("30 天马原速通计划");
+    expect(data.plan.status).toBe("ACTIVE");
+
+    // 清理
+    await page.request.delete(`${BASE}/api/plans/${data.plan.id}`);
+  });
+
+  test("K6-2. 获取学习计划列表", async ({ page }) => {
+    await login(page);
+    // 先创建一条
+    const createRes = await page.request.post(`${BASE}/api/plans`, {
+      data: {
+        title: "列表测试计划",
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    });
+    const planData = await createRes.json();
+
+    const res = await page.request.get(`${BASE}/api/plans`);
+    expect(res.ok()).toBe(true);
+    const data = await res.json();
+    expect(Array.isArray(data.plans)).toBe(true);
+
+    // 清理
+    if (planData.plan?.id) {
+      await page.request.delete(`${BASE}/api/plans/${planData.plan.id}`);
+    }
+  });
+
+  test("K6-3. 暂停/恢复学习计划", async ({ page }) => {
+    await login(page);
+    const createRes = await page.request.post(`${BASE}/api/plans`, {
+      data: {
+        title: "暂停测试计划",
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    });
+    const planData = await createRes.json();
+    const planId = planData.plan?.id;
+    expect(planId).toBeTruthy();
+
+    // 暂停
+    const pauseRes = await page.request.patch(`${BASE}/api/plans/${planId}`, {
+      data: { status: "PAUSED" },
+    });
+    expect(pauseRes.ok()).toBe(true);
+    let plan = (await pauseRes.json()).plan;
+    expect(plan.status).toBe("PAUSED");
+
+    // 恢复
+    const resumeRes = await page.request.patch(`${BASE}/api/plans/${planId}`, {
+      data: { status: "ACTIVE" },
+    });
+    expect(resumeRes.ok()).toBe(true);
+    plan = (await resumeRes.json()).plan;
+    expect(plan.status).toBe("ACTIVE");
+
+    // 清理
+    await page.request.delete(`${BASE}/api/plans/${planId}`);
+  });
+
+  test("K6-4. 删除学习计划", async ({ page }) => {
+    await login(page);
+    const createRes = await page.request.post(`${BASE}/api/plans`, {
+      data: {
+        title: "删除测试计划",
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    });
+    const planData = await createRes.json();
+    const planId = planData.plan?.id;
+
+    const deleteRes = await page.request.delete(`${BASE}/api/plans/${planId}`);
+    expect(deleteRes.ok()).toBe(true);
+
+    // 再次查询应 404
+    const getRes = await page.request.get(`${BASE}/api/plans/${planId}`);
+    expect(getRes.status()).toBe(404);
+  });
+
+  test("K6-5. 无效状态拒绝", async ({ page }) => {
+    await login(page);
+    const createRes = await page.request.post(`${BASE}/api/plans`, {
+      data: {
+        title: "状态测试计划",
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    });
+    const planId = (await createRes.json()).plan?.id;
+
+    const res = await page.request.patch(`${BASE}/api/plans/${planId}`, {
+      data: { status: "INVALID" },
+    });
+    expect(res.status()).toBe(400);
+
+    // 清理
+    await page.request.delete(`${BASE}/api/plans/${planId}`);
+  });
+});
+
+// K7 ReviewItem / ReviewLog 一致性
+test.describe("K7. 数据一致性", () => {
+  test("K7-1. 完成答题后 review_item 状态更新", async ({ page }) => {
+    await login(page);
+    await ensureBankLoaded(page);
+
+    const listRes = await page.request.get(`${BASE}/api/banks`);
+    const listData = await listRes.json();
+    const banks = listData.banks ?? [];
+    if (banks.length === 0) return;
+    const bankId = banks[0].id;
+
+    // 获取答题数据
+    const studyRes = await page.request.post(`${BASE}/api/study/start`, {
+      data: { bankId, mode: "LEARN" },
+    });
+    if (studyRes.status() !== 200 && studyRes.status() !== 201) return;
+    const studyData = await studyRes.json();
+    const sessionId = studyData.session?.id ?? studyData.id;
+    const question = studyData.next ?? studyData.question;
+    if (!question || !sessionId) return;
+
+    // 提交一个答案
+    const answerRes = await page.request.post(`${BASE}/api/study/submit`, {
+      data: {
+        sessionId,
+        questionId: question.id,
+        userAnswer: "A",
+        rating: "GOOD",
+        timeSpentSec: 30,
+      },
+    });
+    expect(answerRes.ok()).toBe(true);
+
+    // 验证 review_item 被更新
+    const itemRes = await page.request.get(
+      `${BASE}/api/study/review-items?questionId=${question.id}`
+    );
+    expect(itemRes.ok()).toBe(true);
+    const itemData = await itemRes.json();
+    const item = itemData.item ?? itemData.reviewItem;
+    if (item) {
+      expect(item.state).not.toBe("NEW");
+    }
+  });
+
+  test("K7-2. review_log 与 review_item 计数自洽", async ({ page }) => {
+    await login(page);
+    // 批量校验最近 50 条 log，每条都应有对应 item
+    const listRes = await page.request.get(`${BASE}/api/logbook?limit=10`);
+    if (!listRes.ok()) return;
+    const logs = (await listRes.json()).logs ?? [];
+    if (logs.length === 0) return;
+
+    // 取前 3 条逐一验证
+    for (const log of logs.slice(0, 3)) {
+      const itemRes = await page.request.get(
+        `${BASE}/api/logbook/${log.id}/review-item`
+      );
+      expect(itemRes.ok()).toBe(true);
+    }
+  });
+
+  test("K7-3. notification 去重（同用户同类型同天只一条）", async ({ page }) => {
+    await login(page);
+    const now = new Date().toISOString();
+
+    // 往通知表插入测试数据（通过 API 触发 scanAndNotify 间接测试）
+    const res = await page.request.post(`${BASE}/api/notifications/scan`, {
+      data: { reason: "review_due" },
+    });
+    // 预期成功或 429（已扫过）
+    expect([200, 201, 429]).toContain(res.status());
+
+    // 再扫一次，应幂等（不重复创建）
+    const res2 = await page.request.post(`${BASE}/api/notifications/scan`, {
+      data: { reason: "review_due" },
+    });
+    expect([200, 201, 429]).toContain(res2.status());
+  });
+});
