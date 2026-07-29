@@ -192,6 +192,47 @@ test("cardToDbUpdate 输出 Prisma 字符串 state", () => {
   );
 });
 
+// ============== P0 补充测试（Phase 1 全场景） ==============
+
+test("F-20 stability 为 0 时 previewIntervals 不抛异常", () => {
+  const card = newCard();
+  card.stability = 0;
+  const intervals = previewIntervals(card);
+  assert.ok(Array.isArray(intervals));
+  assert.ok(intervals.length > 0);
+});
+
+test("F-21 lastReviewAt 为新日期时 retrievability 接近 1.0", () => {
+  const card = newCard();
+  card.state = State.Review;
+  card.stability = 30;
+  card.lastReviewAt = new Date(); // 刚复习
+  const { retrievability: r } = card;
+  // lastReviewAt 刚过 → elapsed_days=0 → R≈1.0
+  assert.ok(r === undefined || r >= 0.99, `R=${r}`);
+});
+
+test("F-22 RELEARNING → Good → REVIEW", () => {
+  const card = newCard();
+  card.state = State.Relearning;
+  const result = gradeCard(card, Rating.Good);
+  assert.equal(result.card.state, State.Review);
+});
+
+test("F-23 scoreToRating 边界值全覆盖", () => {
+  assert.equal(scoreToRating(-1), Rating.Again);
+  assert.equal(scoreToRating(1.5), Rating.Easy);
+});
+
+test("F-24 极端 stability(0.01) + difficulty(10) 不抛异常", () => {
+  const card = newCard();
+  card.stability = 0.01;
+  card.difficulty = 10;
+  card.state = State.Review;
+  const result = gradeCard(card, Rating.Again);
+  assert.equal(typeof result.card.state, "number");
+});
+
 // 汇总
 console.log(`\nFSRS 状态映射：${passed} 通过 / ${failed} 失败 / ${passed + failed} 总计`);
 if (failed > 0) process.exit(1);

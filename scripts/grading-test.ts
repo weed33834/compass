@@ -214,6 +214,53 @@ test("多空部分对 → score 介于 0-1", () => {
   assert.ok(r.partialScore > 0 && r.partialScore < 1);
 });
 
+// ============== P0 补充测试（Phase 1 全场景） ==============
+
+test("G-14 填空分隔符 | 分隔 → 任一匹配即对", () => {
+  const q = makeQuestion("FILL_BLANK", [{ key: "1", answer: "北京|Beijing" }], ["北京"]);
+  const r = gradeQuestion(q, ["Beijing"]);
+  assert.equal(r.isCorrect, true);
+});
+
+test("G-15 填空全角数字归一化 → 1与１判定相等", () => {
+  const q = makeQuestion("FILL_BLANK", [{ key: "1", answer: "1" }], ["1"]);
+  const r = gradeQuestion(q, ["１"]); // 全角数字
+  assert.equal(r.isCorrect, true);
+});
+
+test("G-16 多选空提交 → 0分", () => {
+  const q = makeQuestion("MULTI_CHOICE", [
+    { key: "A", correct: true },
+    { key: "B", correct: true },
+  ], ["A", "B"]);
+  const r = gradeQuestion(q, []);
+  assert.equal(r.isCorrect, false);
+  assert.equal(r.partialScore, 0);
+});
+
+test("G-17 判断中文真是 → 识别为 true", () => {
+  const q = makeQuestion("TRUE_FALSE", [
+    { key: "T", text: "正确", correct: true },
+    { key: "F", text: "错误", correct: false },
+  ], [true]);
+  const r = gradeQuestion(q, ["是"]);
+  assert.equal(r.isCorrect, true);
+});
+
+test("G-18 单选大小写不敏感 → B=b", () => {
+  const q = makeQuestion("SINGLE_CHOICE", [
+    { key: "A" }, { key: "B" }, { key: "C" },
+  ], ["B"]);
+  const r = gradeQuestion(q, ["b"]);
+  assert.equal(r.isCorrect, true);
+});
+
+test("G-19 填空题 options 为空 → fallback 直接比较 answer", () => {
+  const q = makeQuestion("FILL_BLANK", [], "北京");
+  const r = gradeQuestion(q, ["北京"]);
+  assert.equal(r.isCorrect, true);
+});
+
 // 汇总
 console.log(`\n判分逻辑：${passed} 通过 / ${failed} 失败 / ${passed + failed} 总计`);
 if (failed > 0) process.exit(1);
