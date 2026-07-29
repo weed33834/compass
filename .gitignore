@@ -85,3 +85,4 @@ next-env.d.ts
 public/icon-192.png
 public/icon-512.png
 public/apple-touch-icon.png
+backups/*.sql.gz
