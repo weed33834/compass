@@ -20,10 +20,15 @@ import {
   Check,
   RefreshCw,
   Inbox,
+  Tag,
+  X,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/Button";
 import { Illustration } from "@/components/Illustration";
+
+const ERROR_TAGS = ["概念不清", "审题失误", "记忆模糊", "计算错误", "知识点遗漏", "粗心"] as const;
+type ErrorTag = (typeof ERROR_TAGS)[number];
 
 interface WrongItem {
   reviewItemId: string;
@@ -108,6 +113,33 @@ export default function WrongbookPage() {
     if (res.ok) {
       setItems((prev) => prev.filter((i) => i.reviewItemId !== reviewItemId));
       setTotal((t) => Math.max(0, t - 1));
+    }
+  };
+
+  const handleToggleTag = async (reviewItemId: string, tag: ErrorTag) => {
+    const item = items.find((i) => i.reviewItemId === reviewItemId);
+    if (!item) return;
+    const nextTags = item.errorTags.includes(tag)
+      ? item.errorTags.filter((t) => t !== tag)
+      : [...item.errorTags, tag];
+
+    // optimistic update
+    setItems((prev) =>
+      prev.map((i) => (i.reviewItemId === reviewItemId ? { ...i, errorTags: nextTags } : i))
+    );
+
+    const res = await apiFetch("/api/wrongbook", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reviewItemId, errorTags: nextTags }),
+    });
+    if (!res.ok) {
+      // revert on failure
+      setItems((prev) =>
+        prev.map((i) =>
+          i.reviewItemId === reviewItemId ? { ...i, errorTags: item.errorTags } : i
+        )
+      );
     }
   };
 
@@ -210,6 +242,29 @@ export default function WrongbookPage() {
                               ))}
                             </div>
                           )}
+                          {/* 错因标签 */}
+                          <div className="mt-2 border-t border-starlight/10 pt-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {ERROR_TAGS.map((tag) => {
+                                const active = item.errorTags.includes(tag);
+                                return (
+                                  <button
+                                    key={tag}
+                                    type="button"
+                                    onClick={() => handleToggleTag(item.reviewItemId, tag)}
+                                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-mono transition-colors ${
+                                      active
+                                        ? "border-brass/40 bg-brass/15 text-brass"
+                                        : "border-starlight/20 bg-abyss-700/30 text-starlight/60 hover:border-starlight/40 hover:text-starlight/90"
+                                    }`}
+                                  >
+                                    {active && <X className="h-2.5 w-2.5" />}
+                                    {tag}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
