@@ -7,6 +7,8 @@ import { getAuthUserId } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { defaultLocale, isLocale, type Locale } from "@/lib/i18n";
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://compass.example.com").replace(/\/$/, "");
+
 const SITE_DESCRIPTION =
   "Compass · 刷题罗盘 — 基于 FSRS-6 算法的自托管间隔重复刷题工具。导入 Markdown / Excel / Word 题库，键盘驱动答题，算法自动调度复习节奏。Anki 的现代自托管替代品。";
 
@@ -43,14 +45,14 @@ export const metadata: Metadata = {
   creator: "Compass Contributors",
   publisher: "Compass",
   category: "education",
-  metadataBase: new URL("https://gitcode.com/badhope/compass"),
+  metadataBase: new URL(SITE_URL),
   alternates: {
-    canonical: "https://gitcode.com/badhope/compass",
+    canonical: SITE_URL,
   },
   openGraph: {
     type: "website",
     locale: "zh_CN",
-    url: "https://gitcode.com/badhope/compass",
+    url: SITE_URL,
     siteName: "Compass · 刷题罗盘",
     title: "Compass · 刷题罗盘 — FSRS-6 自托管间隔重复刷题工具",
     description: SITE_DESCRIPTION,

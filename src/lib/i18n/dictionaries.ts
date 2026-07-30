@@ -130,6 +130,24 @@ export const dictionaries = {
       en: "Import your first question bank, find your true north of knowledge.",
     },
     copyright: { "zh-CN": "© 2026 Compass", en: "© 2026 Compass" },
+    // —— 新增板块（标题/副标题走字典，正文内联）——
+    howTitle: { "zh-CN": "四步，从题海到掌握", en: "Four steps, from sea to mastery" },
+    howSubtitle: {
+      "zh-CN": "不靠意志力，靠算法与节奏",
+      en: "Not willpower, but algorithm and rhythm",
+    },
+    pricingTitle: { "zh-CN": "按需起航，不为闲置买单", en: "Set sail as you need" },
+    pricingSubtitle: {
+      "zh-CN": "免费永久可用，进阶按需解锁",
+      en: "Free forever, unlock advanced on demand",
+    },
+    faqTitle: { "zh-CN": "航海者常见疑问", en: "Questions from voyagers" },
+    faqSubtitle: { "zh-CN": "部署、数据与算法，一次说清", en: "Deployment, data and algorithm, explained" },
+    privacyTitle: { "zh-CN": "你的数据，只属于你", en: "Your data belongs to you" },
+    privacySubtitle: {
+      "zh-CN": "自托管优先，隐私是默认项",
+      en: "Self-host first, privacy by default",
+    },
   },
   dashboard: {
     title: { "zh-CN": "仪表盘", en: "Dashboard" },
