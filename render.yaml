@@ -1,0 +1,57 @@
+# Render 部署蓝图（Infrastructure as Code）
+# ----------------------------------------------------------------------------
+# 用法（两种任选其一）：
+#   方式 A（推荐，一键）：Render 控制台 → New → Blueprint → 连接 GitCode 仓库
+#                         → 选择本文件 → Apply → 自动建库 + 建服务
+#   方式 B：New → Web Service → 连接仓库，手动填下方 build/start 与 envVars
+#
+# 部署完成、拿到域名后，务必在 Render 控制台补两样：
+#   1) NEXTAUTH_URL  = 你的实际上线地址（如 https://compass.onrender.com）
+#   2) NEXT_PUBLIC_SITE_URL = 同上（自定义域名时也改这里；不填则自动用 Render 默认域名）
+# ----------------------------------------------------------------------------
+
+databases:
+  - name: compass-db
+    databaseName: compass
+    user: compass
+    plan: free            # 免费 Postgres；注意免费库 90 天后可能被回收，正式用请升 starter
+    postgresMajorVersion: 16
+    region: singapore     # 离中国大陆最近的区域，可在控制台换 oregon/frankfurt
+
+services:
+  - type: web
+    name: compass
+    runtime: node
+    region: singapore
+    branch: main
+    plan: free            # 免费 Web 服务会空闲自动休眠；正式常用请升 starter（常驻）
+    # 构建：装依赖 → 生成 Prisma 客户端 → 生产构建
+    buildCommand: pnpm install && pnpm prisma generate && pnpm build
+    # 部署前：应用数据库迁移（幂等，可重复执行）
+    preDeployCommand: pnpm prisma migrate deploy
+    # 启动：Next.js 生产服务器（自动监听 Render 注入的 PORT）
+    startCommand: pnpm start
+    # 健康检查端点（应用已实现 /api/health）
+    healthCheckPath: /api/health
+    envVars:
+      # 数据库连接串：由上面 databases 自动注入
+      - key: DATABASE_URL
+        fromDatabase:
+          name: compass-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      # 会话签名密钥：首次部署自动生成，之后保持
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      # 上线域名：部署后在控制台填（sync:false = 不由此蓝图管理）
+      - key: NEXTAUTH_URL
+        sync: false
+      # SEO 根地址：不填则自动用 Render 默认域名（主机感知，免重构建）
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      # 第三方登录：留空=仅邮箱密码；填 "github,google" 需另配对应 OAuth 密钥
+      - key: NEXT_PUBLIC_OAUTH_PROVIDERS
+        value: ""
+      # 媒体上传持久化：Render 文件系统临时，上传的图片/音频会在重建后丢失。
+      # 如需永久保存，请改用对象存储（S3/R2）或自托管 Docker（见 DEPLOYMENT.md）。

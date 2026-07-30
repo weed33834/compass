@@ -205,7 +205,7 @@ A sample `Caddyfile` is provided for reverse-proxy + auto-TLS (Let's Encrypt) in
 
 ### Cloud platforms
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for three deployment options with detailed steps:
+See [DEPLOYMENT.md](DEPLOYMENT.md) for three deployment options with detailed steps. A **`render.yaml`** blueprint is included for one-click Render deploy (PostgreSQL + Web Service):
 
 | Option | Best for | Database |
 |---|---|---|

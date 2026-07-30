@@ -63,20 +63,45 @@ Compass 是一个标准 **Next.js 16（App Router）+ PostgreSQL + Prisma** 应�
 
 ---
 
-## 3. 方案 B：Railway / Render（自带 Postgres，一键）
+## 3. 方案 B：Render（自带 Postgres，一键蓝图）
 
-适合：想要「一个服务带数据库」的简单托管，又不想自己管服务器。
+适合：不想自己管服务器、想要「一个服务带数据库」的简单托管，且能接受平台文件系统临时（见下方限制）。仓库已提供 **`render.yaml` 蓝图**，连接仓库即可一键启库 + 启服务。
 
-**Railway 步骤**
-1. 新建 Project → Deploy from GitHub repo。
-2. 添加 PostgreSQL 插件，Railway 会自动注入 `DATABASE_URL`。
-3. 在 Variables 里补 `NEXTAUTH_URL` / `NEXTAUTH_SECRET` / `NEXT_PUBLIC_SITE_URL`。
-4. Build Command：`pnpm prisma generate && pnpm build`；Start：`pnpm start`。
-5. 生成域名后，把该域名回填到 `NEXTAUTH_URL` 等变量（Railway 域名形如 `xxx.up.railway.app`）。
+### 方式一：Blueprint 一键（推荐）
 
-**Render 步骤**基本一致：Web Service（Docker 或 Node）＋ PostgreSQL 插件，Start 用 `pnpm start`。
+1. Render 控制台 → **New** → **Blueprint** → 连接 GitCode 仓库（`badhope/compass`）。
+2. Render 自动读取 `render.yaml`：创建 `compass-db`（PostgreSQL 16）+ `compass`（Web Service）。
+3. 点 **Apply** → 自动执行：安装依赖 → `prisma generate` → `next build` → `prisma migrate deploy` → 启动。
+4. 部署完成后拿到域名（默认 `https://compass.onrender.com`）。**回到控制台补两项环境变量**：
+   - `NEXTAUTH_URL` = 你的实际上线地址（如 `https://compass.onrender.com`）
+   - `NEXT_PUBLIC_SITE_URL` = 同上（自定义域名也填这里；**不填则自动用 Render 默认域名**，SEO 路由主机感知，免重构建）
+5. 在 **Shell**（或本地）灌入官方题库：应用容器起来后，执行
+   ```bash
+   # 本地有仓库且能连上线上 DB 时可省略；更稳妥的是在 Render Shell 里跑：
+   pnpm prisma migrate deploy
+   node scripts/import-official-banks.mjs
+   ```
+   > 说明：`import-official-banks.mjs` 走应用的登录 API 导入，需在**运行环境**里执行（本地连线上库需 DATABASE_URL 指线上；或在 Render 的 Web Service Shell 里直接跑）。
 
-> 这两个平台本质也是容器化运行，**上传文件在实例重启后同样可能丢失**（除非挂持久卷）。Railway 可挂 Volume 到 `/app/public/uploads` 解决。
+### 方式二：手动建 Web Service
+
+1. **New** → **Web Service** → 连接仓库。
+2. 运行时选 **Node**（Render 检测到 `pnpm-lock.yaml` 会自动用 pnpm）。
+3. 关联一个 PostgreSQL 实例（Render 自动注入 `DATABASE_URL`）。
+4. 命令填写：
+   - Build：`pnpm install && pnpm prisma generate && pnpm build`
+   - Start：`pnpm start`
+   - Health Check Path：`/api/health`
+5. 高级 → **Pre-deploy Command**：`pnpm prisma migrate deploy`（每次部署前自动迁移）。
+6. 环境变量补 `NEXTAUTH_SECRET`（随机串）、`NEXTAUTH_URL`、`NEXT_PUBLIC_SITE_URL`。
+
+### 已知限制（重要）
+
+- **媒体上传不持久**：`POST /api/upload` 写 `public/uploads/` 运行时磁盘，Render 实例重启/重建后文件丢失。需要永久保存请改用对象存储（S3/R2）或自托管 Docker（挂卷）。
+- **免费层**：免费 Web 服务空闲会休眠、冷启约 30–60s；免费 Postgres 90 天后可能被回收（数据风险），正式使用建议升级 `starter`。
+- **限流 IP**：生产环境未配 `TRUSTED_PROXY_IPS`（Render 代理 IP 动态，无法精确写死），限流回退到直连代理 IP——对早期小流量无影响，多实例大流量时建议扩展 `client-ip.ts` 支持 CIDR。
+
+> **Railway** 步骤与 Render 类似：New Project → Deploy from repo → 加 PostgreSQL 插件（自动注入 `DATABASE_URL`）→ 补 `NEXTAUTH_URL` / `NEXTAUTH_SECRET` / `NEXT_PUBLIC_SITE_URL` → Build `pnpm prisma generate && pnpm build`、Start `pnpm start`。Railway 可挂 Volume 到 `/app/public/uploads` 解决上传持久化。
 
 ---
 
@@ -118,8 +143,8 @@ docker compose exec app node scripts/import-official-banks.mjs
 - **Prisma 迁移**：仓库已含 `prisma/migrations`，部署后执行 `prisma migrate deploy`（勿用 `migrate dev`，那是开发命令）。
 - **PWA 已就绪**：`manifest.json` / `sw.js` / `icons/` 都在 `public/`，构建后自动可安装。
 - **安全响应头**：`next.config.mjs` 已下发 HSTS / X-Frame-Options 等；反代层（Caddy）再补一层纵深防御。
-- **SEO**：`app/robots.ts` 与 `app/sitemap.ts` 已读 `NEXT_PUBLIC_SITE_URL`，上线前务必把它设成真实域名（已修复原先指向 GitCode 仓库的 bug）。
-- **限流与真实 IP**：若放在反代后，设置 `TRUSTED_PROXY_IPS` 让 `rateLimit` 拿到真实客户端 IP，否则会按反代 IP 误限流。
+- **SEO**：`app/robots.ts` 与 `app/sitemap.ts` 现已**主机感知**——优先读 `NEXT_PUBLIC_SITE_URL`，未设置时自动用请求的 `Host`（Render/Vercel 默认域名、自定义域名均免重构建生效）。原先指向 GitCode 仓库的 `metadataBase` bug 已修复。
+- **限流与真实 IP**：`src/lib/client-ip.ts` 仅对白名单内直连 IP 信任 `x-forwarded-*` 头（精确匹配，暂不支持 CIDR）。Render 代理 IP 动态无法写死，故**不配置** `TRUSTED_PROXY_IPS` 最安全，限流回退到直连 IP（早期小流量无影响）。
 
 ---
 
