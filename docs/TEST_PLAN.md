@@ -138,3 +138,13 @@ Phase 1 (P0): A.G-14~19, A.F-20~24, A.I-18~23, IT-01~10, E2E-01~07
 Phase 2 (P1): E2E-08~15, 性能基准全量
 Phase 3 (P2): E2E-16~20, WCAG 审计
 ```
+
+### Mobile E2E Tests (Playwright)
+
+14 mobile tests in `tests/e2e/`:
+
+- `mobile-auth.spec.ts` (3) — Login, register, forgot-password
+- `mobile-navigation.spec.ts` (7) — All pages render, nav persistence, logout
+- `mobile-study.spec.ts` (2) — Answer + rating cycle, empty state
+
+Tests use `test.describe.configure({mode:"serial"})` + `beforeAll` single login to avoid rate-limit. Mobile UA and iPhone viewport (390×844) used throughout.

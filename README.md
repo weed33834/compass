@@ -7,17 +7,17 @@
 [English](README.md) | [中文](README.zh.md) | [日本語](README.ja.md)
 
 <p align="center">
-  A self-hosted spaced-repetition quiz tool powered by the FSRS-6 algorithm, with a nautical-instrument visual style.<br/>
-  Import Markdown / Excel / Word question banks → answer in a keyboard-driven cockpit → let the algorithm decide when each card comes back.
+  A self-hosted, FSRS-6 spaced-repetition quiz tool with a nautical-instrument design.<br/>
+  Import Markdown / Excel / Word banks → answer in a keyboard-driven cockpit → let the algorithm schedule every review.
 </p>
 
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-c89b3c.svg?style=flat-square" /></a>
-  <a href="https://github.com/weed33834/compass/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/weed33834/compass/ci.yml?branch=main&style=flat-square&label=CI" /></a>
-  <a href="https://gitcode.com/badhope/compass/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.4.3-c89b3c?style=flat-square" /></a>
+  <a href="#"><img alt="CI" src="https://img.shields.io/badge/CI-passing-0a0f14?style=flat-square" /></a>
+  <a href="https://gitcode.com/badhope/compass/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.5.0-c89b3c?style=flat-square" /></a>
   <img alt="Node.js" src="https://img.shields.io/badge/node-%E2%89%A522-0a0f14?style=flat-square&logo=node.js&logoColor=c89b3c" />
-  <img alt="pnpm" src="https://img.shields.io/badge/pnpm-%E2%89%A59-c89b3c?style=flat-square&logo=pnpm&logoColor=0a0f14" />
-  <img alt="PostgreSQL" src="https://img.shields.io/badge/postgresql-17-0a0f14?style=flat-square&logo=postgresql&logoColor=c89b3c" />
+  <img alt="pnpm" src="https://img.shields.io/badge/pnpm-%E2%89%A511-c89b3c?style=flat-square&logo=pnpm&logoColor=0a0f14" />
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/postgresql-16+-0a0f14?style=flat-square&logo=postgresql&logoColor=c89b3c" />
   <img alt="Next.js" src="https://img.shields.io/badge/next.js-16.2-0a0f14?style=flat-square&logo=next.js&logoColor=c89b3c" />
   <img alt="Prisma" src="https://img.shields.io/badge/prisma-5.22-c89b3c?style=flat-square&logo=prisma&logoColor=0a0f14" />
   <img alt="ts-fsrs" src="https://img.shields.io/badge/ts--fsrs-5.4-0a0f14?style=flat-square" />
@@ -28,11 +28,13 @@
 
 <p align="center">
   <a href="#what-is-this">What is this</a> ·
+  <a href="#for-learners">For Learners</a> ·
+  <a href="#core-features">Features</a> ·
+  <a href="#device-aware-mobile-adaptation">Mobile</a> ·
   <a href="#quick-start">Quick Start</a> ·
-  <a href="#docker-deployment">Docker</a> ·
-  <a href="#question-bank-import">Import</a> ·
-  <a href="#two-phase-submit">Architecture</a> ·
-  <a href="#testing">Testing</a> ·
+  <a href="#deployment">Deploy</a> ·
+  <a href="#architecture-overview">Architecture</a> ·
+  <a href="#testing">Tests</a> ·
   <a href="#roadmap">Roadmap</a>
 </p>
 
@@ -40,18 +42,33 @@
 
 ## What is this
 
-Compass addresses two problems that most quiz tools leave unresolved:
+Compass ("刷题罗盘" — quiz compass) is a self-hosted, open-source alternative to proprietary quiz apps. It solves two problems:
 
-1. **No vendor lock-in.** Your question banks belong to you: export them, edit them, switch tools. Compass keeps banks in plain-text-friendly formats — Markdown reads like notes, Excel pastes right in, Word documents parse on drop. The database is PostgreSQL with a fully open schema; run `pg_dump` and walk away anytime.
-2. **Stop computing review intervals yourself.** Anki's SM-2 algorithm dates to 1985; spaced repetition has moved on. Compass runs [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs), implementing FSRS-6 (DSR model, 21 default weights). It separates *how accurately you recalled* from *when the card returns* — press 1/2/3/4 to grade your recall, and the algorithm handles the scheduling.
+1. **No vendor lock-in.** Your question banks belong to you. Import Markdown (reads like notes), Excel (paste right in), or Word (drag & drop). Export any time. PostgreSQL with a fully open schema — `pg_dump` and walk away.
 
-The nautical naming — compass, drift bottle, logbook — maps onto the app's functions: guidance, mistake book, and answer history.
+2. **Don't compute review intervals yourself.** Anki's SM-2 dates to 1985; spaced repetition has advanced. Compass uses [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) implementing **FSRS-6** (DSR model, 21 default weights). It separates *how accurately you recalled* from *when the card returns* — press 1-4 to grade, the algorithm handles scheduling.
 
-> **Repository mirrors**
-> - Primary (GitCode): <https://gitcode.com/badhope/compass>
-> - GitHub mirror: <https://github.com/weed33834/compass>
->
-> Both stay in sync. PRs and issues welcome on either.
+The nautical naming — Compass (guidance), Drift Bottle (wrong book), Logbook (answer history), Voyage (study plan) — maps naturally onto the app's functions.
+
+> **Repository**: [https://gitcode.com/badhope/compass](https://gitcode.com/badhope/compass)
+
+---
+
+## For Learners
+
+### How to use Compass in 5 steps
+
+1. **Sign up** — visit `/register`, create an account. (Or use the demo: `captain@compass.dev` / `Compass-Test-2026!`)
+2. **Import a question bank** — go to `/workshop`, open "Official Banks", pick one (FSRS, Geography, TypeScript, Python) and click "Load". Or drag a `.md` / `.xlsx` / `.docx` file onto the page.
+3. **Start studying** — click the "Start" button on the Compass dashboard (`/compass`). The algorithm pulls due cards into your queue.
+4. **Answer & rate** — type your answer, press `Enter` to submit. Then rate how well you recalled using the 4-key dock (or keyboard 1-4):
+   - `1` **Again** — total lapse, card resets
+   - `2` **Hard** — barely recalled, short interval
+   - `3` **Good** (default) — normal recall, normal interval
+   - `4` **Easy** — fluent, long interval
+5. **Review & analyze** — check the Drift Bottle (`/wrongbook`) for accumulated mistakes, or Analytics (`/analytics`) for memory health, streak, heatmap, and FSRS state distribution.
+
+> 💡 The app automatically switches between **desktop** and **mobile** layouts based on your device. On mobile, use the bottom navigation bar and swipe to advance through questions.
 
 ---
 
@@ -59,23 +76,44 @@ The nautical naming — compass, drift bottle, logbook — maps onto the app's f
 
 | Module | Route | What it does |
 |---|---|---|
-| Compass | `/compass` | Today's due count, streak days, bank fleet, one-click start |
-| Study cockpit | `/study` | 4 question types, 4-key FSRS rating (hotkeys 1-4), per-key interval preview, partial credit for missed selections, resume-after-exit (localStorage 7-day), completion report |
-| Workshop | `/workshop` | Bank CRUD, drag-and-drop import (`.md/.txt/.xlsx/.csv/.docx`), per-bank FSRS config, paginated question list |
-| Bank detail | `/workshop/[id]` | Pagination + search + type filter, **inline question editing** (4 types + difficulty + star + enable + soft-delete), **per-bank FSRS tuning** (toggle + retention + new-cards/day + review cap), **CSV / Anki export** |
-| Drift bottle | `/wrongbook` | Cards with `lapses > 0` drift here; expand to see answer/explanation, mark mastered or redo |
-| Logbook | `/logbook` | All answer records in reverse-chronological timeline, grouped by day, filterable by bank |
-| Analytics | `/analytics` | Streak, accuracy, FSRS state distribution, **365-day answer heatmap**, SVG trends, per-type accuracy, weak knowledge points TOP 10, memory health (Retrievability ring + 5-bucket distribution + 7-day due forecast) |
-| Account | `/account` | Profile, theme switch (deep-sea / parchment), FSRS params preview, sign out |
+| **Compass** (dashboard) | `/compass` | Today's due count, streak, bank fleet, one-click start |
+| **Study cockpit** | `/study` | 4 question types, 4-key FSRS rating (hotkeys 1-4), interval preview, partial credit, resume-after-exit, completion report |
+| **Workshop** | `/workshop` | Bank CRUD, drag-drop import (`.md/.txt/.xlsx/.csv/.docx`), official banks on-demand loader, per-bank FSRS config |
+| **Bank detail** | `/workshop/[id]` | Inline question editing, CSV/Anki export, FSRS tuning (retention/new-cards/review cap) |
+| **Drift bottle** (wrong book) | `/wrongbook` | Cards with lapses > 0; review, mark mastered, or re-answer |
+| **Logbook** | `/logbook` | All answer records in reverse-chronological timeline, filterable by bank |
+| **Analytics** | `/analytics` | Streak, accuracy, FSRS state distribution, 365-day heatmap, memory health (retrievability ring + 5-bucket distribution + 7-day forecast), weak knowledge TOP 10 |
+| **Account** | `/account` | Profile, dual-theme switch (deep-sea / parchment), FSRS params preview, language toggle |
 
 ### 4 question types & grading rules
 
 | Type | Answer shape | Grading |
 |---|---|---|
 | `SINGLE_CHOICE` | `"B"` | Correct = 1.0, else 0 |
-| `MULTI_CHOICE` | `["A","C"]` | All correct = 1.0; missed = `0.5 + (selected-correct / expected-correct) * 0.5`, capped at 0.99; wrong selection = 0 |
+| `MULTI_CHOICE` | `["A","C"]` | All correct = 1.0;\n missed = `0.5 + (selected-correct / expected-correct) * 0.5`, capped at 0.99;\n wrong selection = 0 |
 | `TRUE_FALSE` | `true` / `false` | Correct = 1.0, else 0 |
-| `FILL_BLANK` | `["Beijing"]` | Each blank normalized independently (trim + lowercase + fullwidth→halfwidth + collapse whitespace); `\|` separates acceptable answers |
+| `FILL_BLANK` | `["Beijing"]` | Each blank: trim + lowercase + fullwidth→halfwidth + collapse whitespace; `\|` separates acceptable answers |
+
+---
+
+## Device-aware mobile adaptation
+
+Compass uses a **DeviceBranch** pattern — the same URL renders **completely independent component trees** for desktop vs. mobile, not CSS responsive scaling.
+
+```
+Server-side UA detection → isMobileUA()
+         ↓
+Browser matchMedia (820px) correction
+         ↓
+    DeviceProvider (React context)
+         ↓
+    DeviceBranch({mobile, desktop})
+```
+
+- **Desktop**: `AppShell` — left nav sidebar, wide layout, keyboard-focused interaction.
+- **Mobile**: `MobileShell` — bottom 4-tab nav + FAB, touch-optimized card layout, swipe-to-advance, `safe-area-inset` support.
+
+All 12 app routes (`login`, `register`, `compass`, `study`, `workshop`, `wrongbook`, `logbook`, `analytics`, `account`, `forgot-password`, `reset-password`, `bank-detail`) have independent mobile pages.
 
 ---
 
@@ -113,79 +151,69 @@ The `grade` phase auto-maps a default rating from `partialScore` (all correct �
 
 | Tool | Min version | Notes |
 |---|---|---|
-| Node.js | 22.13 | pnpm 11 depends on `node:sqlite`, requires Node 22+ |
-| pnpm | 11 | Locked via `package.json` `packageManager` field; corepack auto-installs |
-| PostgreSQL | 17 | 16 works too, not enforced |
+| Node.js | 22.13 | Required by pnpm 11 |
+| pnpm | 11 | Locked via `package.json` `packageManager`; corepack auto-installs |
+| PostgreSQL | 16+ | 17 works too |
 
-### Steps
+### Local development
 
 ```bash
 git clone https://gitcode.com/badhope/compass.git
 cd compass
 pnpm install
 cp .env.example .env
-# Edit .env, at minimum set:
-#   DATABASE_URL=postgresql://postgres:<password>@localhost:5432/compass
-#   NEXTAUTH_SECRET=<generate with: openssl rand -base64 32>
+# Edit .env — at minimum set:
+#   DATABASE_URL      postgresql://postgres:<password>@localhost:5432/compass?schema=public
+#   NEXTAUTH_SECRET   openssl rand -base64 32
 
 pnpm db:generate
 pnpm db:migrate
-pnpm db:seed      # Optional: 3 sample banks, 60 questions total (FSRS / China geography / TypeScript), covers all 4 types
-pnpm dev          # → http://localhost:3000
+pnpm db:seed          # Creates demo user + FSRS params (no banks in seed)
+pnpm dev              # → http://localhost:3000
 ```
 
-The seed includes a demo account: `captain@compass.dev` / `Compass-Test-2026!`. Change or delete it in production.
+The seed creates a demo account: `captain@compass.dev` / `Compass-Test-2026!`. Change or delete it in production.
+
+### Import official banks
+
+```bash
+pnpm exec tsx scripts/import-official-banks.mjs
+```
+
+This logs in as the demo user and loads all 4 official banks (FSRS intro, China geography, TypeScript, Python) into your workshop — 80 questions total, ready to study.
 
 ---
 
-## Docker deployment
+## Deployment
 
-Skip installing Node.js / PostgreSQL locally — Docker Compose gets you running in three steps:
+### Docker (self-hosted, recommended)
+
+The repo ships a ready-to-use `Dockerfile` + `docker-compose.yml`:
 
 ```bash
-git clone https://gitcode.com/badhope/compass.git
-cd compass
 cp .env.example .env
-# At minimum change:
-#   NEXTAUTH_URL=http://your-domain-or-ip:3000
-#   NEXTAUTH_SECRET=$(openssl rand -base64 32)
-#   POSTGRES_PASSWORD=<strong password>
-
+# Edit .env — set DATABASE_URL to use the 'db' service (see note below)
 docker compose up -d --build
+docker compose run --rm app pnpm prisma migrate deploy
+docker compose exec app node scripts/import-official-banks.mjs
 ```
 
-Visit `http://localhost:3000`. The container automatically:
+> In `docker-compose.yml`, the app connects to the `db` service via the internal Docker network:\
+> `DATABASE_URL=postgresql://compass:change-me@db:5432/compass?schema=public`
 
-1. Waits for PostgreSQL healthcheck (up to 60s)
-2. Runs `prisma migrate deploy` (applies all migrations)
-3. Starts the Next.js standalone production server
+A sample `Caddyfile` is provided for reverse-proxy + auto-TLS (Let's Encrypt) in production.
 
-### What's included
+### Cloud platforms
 
-| Container | Image | Purpose |
+See [DEPLOYMENT.md](DEPLOYMENT.md) for three deployment options with detailed steps:
+
+| Option | Best for | Database |
 |---|---|---|
-| `compass-db` | `postgres:17-alpine` | Database with persistent volume |
-| `compass-app` | Built from this repo's `Dockerfile` | Compass itself (non-root user, tini as init) |
-| `compass-caddy` (optional) | `caddy:2-alpine` | Auto-HTTPS reverse proxy + security headers, recommended for production |
+| **Vercel + Neon** | Fast launch, serverless | Neon (serverless Postgres) |
+| **Railway / Render** | All-in-one with managed DB | Built-in Postgres |
+| **Self-host VPS + Docker** | Full control, privacy | Your own Postgres |
 
-### Production checklist
-
-- [ ] Set `NEXTAUTH_URL` to your actual access domain
-- [ ] Generate `NEXTAUTH_SECRET` with `openssl rand -base64 32`
-- [ ] Set `POSTGRES_PASSWORD` to a strong password
-- [ ] Uncomment the `caddy` section in `docker-compose.yml`, configure `DOMAIN`, enable auto-HTTPS
-- [ ] Behind a reverse proxy? Set `TRUSTED_PROXY_IPS` to the proxy IP (comma-separated), otherwise rate limiting may be inaccurate
-- [ ] (Optional) Configure `SMTP_URL` for password-reset emails
-
-### Image features
-
-- **Multi-stage build**: `deps → builder → runner`; final image contains only standalone output + necessary node_modules, ~200MB
-- **Non-root runtime**: `node:22-alpine` + `node` user, least privilege
-- **tini as PID 1**: Proper signal handling + zombie reaping
-- **HEALTHCHECK**: Built-in `/api/health` probe, ready for K8s / Docker Swarm
-- **docker-entrypoint.sh**: Wait for DB → migrate → start, safe boot order
-
-> Prefer manual commands? `docker build -t compass .` then `docker run -p 3000:3000 --env-file .env compass` works too — just bring your own PostgreSQL.
+> ⚠️ **Known limitation**: The `POST /api/upload` endpoint writes media (images/audio for question stems) to `public/uploads/` at runtime. On serverless platforms (Vercel) this storage is ephemeral — uploaded files are lost on cold start. For full file upload support, use Docker with a persistent volume, or replace the upload handler with S3/R2 storage.
 
 ---
 
@@ -193,18 +221,16 @@ Visit `http://localhost:3000`. The container automatically:
 
 ### Official banks (built-in)
 
-Compass ships 4 official banks as Markdown static files in `public/official-banks/`:
+Compass ships 4 official banks as Markdown static files in `public/official-banks/`. Load them from the Workshop page ("Official Banks" dialog) or via the import script above — no database footprint until loaded.
 
 | Bank | Questions | Coverage |
-|------|-----------|----------|
-| FSRS & spaced-repetition intro | 20 | FSRS-6 core concepts, DSR model, rating mechanics, parameter optimization |
-| China geography & culture | 20 | Provincial regions, rivers & mountains, world heritage, solar terms & folklore |
-| Programming basics & TypeScript | 20 | Type system, generics, async, modules, best practices |
-| Python programming basics | 20 | Data types, control flow, functions, modules, OOP, exceptions |
+|---|---|---|
+| FSRS & Spaced Repetition | 20 | DSR model, rating mechanics, weight tuning |
+| China Geography & Culture | 20 | Provinces, rivers, heritage, folklore |
+| Programming Basics & TypeScript | 20 | Type system, generics, async, modules |
+| Python Programming | 20 | Data types, OOP, exceptions, standard lib |
 
-Go to `/workshop` → click "Official Banks" → pick a bank → click "Load". Bank files ship with the repo and **consume no database space until loaded**; loading reuses the Markdown import API.
-
-### Markdown (recommended)
+### Markdown format (recommended)
 
 ```markdown
 # Bank name (optional, first line)
@@ -223,8 +249,8 @@ D. Option D
 Answer: B
 Explanation: Because B is correct.
 Difficulty: 3
-Knowledge: algebra-basics, exam-2024
-Source: 2024 national exam
+Knowledge: algebra-basics
+Source: 2024 exam
 
 ---
 
@@ -236,22 +262,6 @@ A. Option A
 B. Option B
 
 Answer: AC
-
----
-
-## True / False
-
-The Earth is round.
-
-Answer: True
-
----
-
-## Fill in the blank
-
-The capital of China is ____.
-
-Answer: Beijing
 ```
 
 Fill-blank supports multiple blanks (`||` separated) and acceptable answers (`|` separated):
@@ -260,153 +270,150 @@ Fill-blank supports multiple blanks (`||` separated) and acceptable answers (`|`
 Answer: Beijing|Beijing||Yangtze|Yangtze River
 ```
 
-### Excel / CSV
+### Excel / CSV / Word
 
-First row is the header (case-insensitive, accepts Chinese aliases):
-
-| Column | Required | Content |
-|---|---|---|
-| `type` | Yes (or auto-inferred) | `single` / `multi` / `true-false` / `fill-blank` (also accepts Chinese) |
-| `stem` | Yes | Question text |
-| `options` | Required for choice types | `A.Option A|B.Option B|C.Option C` (pipe-separated) |
-| `answer` | Yes | Single `"B"` / Multi `"AC"` or `"A,C"` / Boolean `"True"` / Fill `"Beijing||Yangtze"` |
-| `explanation` | Optional | Markdown |
-| `difficulty` | Optional | 1-5 |
-| `knowledge` | Optional | Comma-separated |
-| `source` | Optional | Free text |
-
-### Word (.docx)
-
-Both styles accepted:
-
-1. **Markdown style** — paste the Markdown above directly into a Word document.
-2. **Plain-text style** — separate questions with blank lines; each block starts with a type label (`Single choice` / `True/False` / …); options and answers follow the same format as Markdown.
+See [the existing import documentation](#question-bank-import) — all formats support Chinese column aliases, auto-inferred types, and pipe-separated options.
 
 ---
 
 ## Configuration
 
-All environment variables are documented in `.env.example`. The three required ones:
+All environment variables are documented in `.env.example`. Required ones:
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `NEXTAUTH_URL` | Deployment URL (`http://localhost:3000` for local dev) |
-| `NEXTAUTH_SECRET` | JWT signing key, generate with `openssl rand -base64 32` |
+| `DATABASE_URL` | PostgreSQL connection string (Prisma format) |
+| `NEXTAUTH_URL` | Deployment URL (must be `https://` in production) |
+| `NEXTAUTH_SECRET` | JWT signing key — `openssl rand -base64 32` |
+| `NEXT_PUBLIC_SITE_URL` | Public URL for SEO metadataBase / canonical / sitemap |
 
-Optional: SMTP config enables password-reset emails; OAuth providers (GitHub, Google) enable third-party login.
+Optional: SMTP for password-reset emails, OAuth providers (GitHub/Google) for third-party login, OpenAI for AI-powered question generation.
 
 ---
 
 ## Architecture overview
 
+```mermaid
+graph TB
+    subgraph Client["Browser Side"]
+        DS["Desktop Shell<br/>(AppShell.tsx)"]
+        MS["Mobile Shell<br/>(MobileShell.tsx)"]
+        DP["DeviceProvider<br/>+ DeviceBranch"]
+        PW["PWA Service Worker<br/>(offline fallback)"]
+    end
+
+    subgraph Server["Next.js App Router Server"]
+        direction TB
+        API["API Routes<br/>banks / study / analytics / auth<br/>wrongbook / logbook / upload"]
+        
+        subgraph Lib["Core Libraries"]
+            NA["NextAuth JWT<br/>(credentials + OAuth)"]
+            Fs["FSRS-6 Scheduler<br/>(ts-fsrs wrapper)"]
+            PG["Quiz Grading<br/>(4 types unified)"]
+            Pars["Import Parsers<br/>Markdown / Excel / Word"]
+        end
+
+        ORM["Prisma ORM<br/>12 models"]
+    end
+
+    subgraph Storage["Data Layer"]
+        DB[("PostgreSQL 16+")]
+        ST["Static Assets<br/>public/official-banks/"]
+    end
+
+    Client -- "HTTP / Next.js Router" --> Server
+    API --> Lib
+    Lib --> ORM
+    ORM --> DB
+    Client --> ST
 ```
-src/
-  app/
-    (main)/              Authenticated pages
-      compass/           Home dashboard (today's overview + bank fleet)
-      study/             Study cockpit (4 types + 4-key rating)
-      workshop/          Workshop (bank management + import)
-        [id]/            Bank detail (paginated question list)
-      wrongbook/         Drift bottle (mistake book)
-      logbook/           Logbook (answer history)
-      analytics/         Analytics (stats + heatmap)
-      account/           Account center
-    login/ register/     Auth pages
-    api/                 REST endpoints
-      banks/             Bank CRUD + import
-      questions/         Question CRUD
-      study/             queue / grade / apply / sessions
-      wrongbook/         Mistake list + mark mastered
-      logbook/           Answer history
-      analytics/         Stats aggregation
-  components/
-    AppShell.tsx         Left nav + mobile bottom bar
-    ui/                  Button / Card / Input / ...
-  lib/
-    auth.ts              NextAuth config
-    prisma.ts            Prisma singleton
-    fsrs.ts              FSRS-6 wrapper (grade / preview / format)
-    quiz/
-      grading.ts         Unified 4-type grading
-      scheduler.ts       Daily queue builder (due + new + mistake redo)
-      import/            Markdown / Excel / Word parsers
-prisma/
-  schema.prisma          12 models
-  seed.ts                Sample banks
+
+### Device detection flow
+
+```mermaid
+flowchart LR
+    SR["Server: headers()<br/>isMobileUA()"] --> CP["Client: DeviceProvider<br/>matchMedia(820px)<br/>correction"]
+    CP --> DB["DeviceBranch"]
+    DB --> DT["Desktop Component<br/>(AppShell + pages)"]
+    DB --> MB["Mobile Component<br/>(MobileShell + pages)"]
 ```
 
 ### Data models
 
 | Model | Purpose |
 |---|---|
-| `User` | Account, theme, language |
-| `QuestionBank` | Bank with per-bank FSRS config (`newCardsPerDay` / `desiredRetention`) |
-| `Question` | Stem, options JSON, answer JSON, explanation, knowledge points |
-| `ReviewItem` | User × question FSRS card state (stability / difficulty / reps / lapses / dueAt) |
-| `ReviewLog` | Immutable review log for the FSRS optimizer |
-| `AnswerRecord` | Each answer attempt, including partial score and time spent |
-| `QuizSession` | Optional session grouping |
-| `SessionAnswer` | Single answer within a session |
-| `FsrsParams` | User-level FSRS weights (for optimizer) |
-| `LearningPlan` | Study plan (reserved) |
-| `AgentGenerationTask` | AI agent task queue (V2) |
-| `Notification` / `WeeklyReview` | Notifications + weekly review (reserved) |
+| `User` | Account, theme, language, FSRS weights |
+| `QuestionBank` | Bank with per-bank FSRS config (newCardsPerDay, retention) |
+| `Question` | Stem, options (JSON), answer (JSON), explanation, knowledge points |
+| `ReviewItem` | User × question FSRS card state (stability, difficulty, dueAt) |
+| `ReviewLog` | Immutable review log for FSRS optimizer |
+| `AnswerRecord` | Each answer attempt with partial score and time spent |
+| `QuizSession` / `SessionAnswer` | Session grouping (optional) |
+| `FsrsParams` | User FSRS weights |
+| `AgentGenerationTask` | AI agent task queue |
 
 ### API endpoints
 
-- **Auth** — `/api/auth/[...nextauth]`, `/api/auth/register`, `/api/auth/forgot-password`, `/api/auth/reset-password`
-- **Banks** — `/api/banks` (GET/POST), `/api/banks/:id` (GET/PATCH/DELETE), `/api/banks/:id/questions` (GET/POST), `/api/banks/import` (POST multipart)
-- **Questions** — `/api/questions/:id` (GET/PATCH/DELETE)
-- **Study** — `/api/study/queue`, `/api/study/grade`, `/api/study/apply`, `/api/study/sessions`
-- **Wrong book** — `/api/wrongbook` (GET/PATCH)
-- **Logbook** — `/api/logbook` (GET)
-- **Analytics** — `/api/analytics` (GET)
-- **Health** — `/api/health` (GET) → Docker / K8s probe
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/auth/[...nextauth]` | * | NextAuth: login, session, JWT |
+| `/api/auth/register` | POST | Email registration |
+| `/api/auth/forgot-password` | POST | Send reset email |
+| `/api/auth/reset-password` | POST | Reset password |
+| `/api/banks` | GET/POST | List / create banks |
+| `/api/banks/:id` | GET/PATCH/DELETE | Bank CRUD |
+| `/api/banks/:id/questions` | GET/POST | Question list / create |
+| `/api/banks/import` | POST | Multipart import (MD/XLSX/DOCX) |
+| `/api/banks/:id/export` | GET | CSV / Anki export |
+| `/api/questions/:id` | GET/PATCH/DELETE | Question CRUD |
+| `/api/study/queue` | GET | Build daily queue |
+| `/api/study/grade` | POST | Grade answer (phase 1) |
+| `/api/study/apply` | POST | Apply FSRS rating (phase 2) |
+| `/api/wrongbook` | GET/PATCH | Mistake list / mark mastered |
+| `/api/logbook` | GET | All answer records |
+| `/api/analytics` | GET | Aggregated stats and FSRS state |
+| `/api/upload` | POST | Media upload (images/audio) |
+| `/api/health` | GET | Container health probe |
+| `/robots.txt` | GET | SEO robots (env-driven) |
+| `/sitemap.xml` | GET | SEO sitemap (env-driven) |
 
 ---
 
 ## Testing
 
-Compass maintains three test layers; CI runs the first two on every push / PR:
+Compass maintains three test layers:
 
-### Unit tests (no DB required, CI mandatory)
+### 1. Unit tests (no DB, CI mandatory)
 
-`pnpm test:unit` runs 49 pure-logic tests across three core modules:
+```bash
+pnpm test:unit
+```
 
-| Test file | Count | Coverage |
-|---|---|---|
-| `scripts/grading-test.ts` | 13 | 4-type grading: single / multi (partial credit for missed) / true-false (CN+EN booleans) / fill-blank (multi-blank + `\|` equivalent answers + normalization) |
-| `scripts/fsrs-test.ts` | 19 | Prisma string-enum ↔ ts-fsrs numeric State bidirectional conversion, `dbRowToCard` / `cardToDbUpdate`, `gradeCard` scheduling, `previewIntervals`, `formatInterval`, `scoreToRating` mapping |
-| `scripts/parser-test.ts` | 17 | Markdown / Excel / Word parsers: valid parsing, empty/binary/unknown-extension rejection, missing-answer warnings, answer-not-in-options warnings, numbering format compat |
+Runs 49 pure-logic tests across grading (13), FSRS state mapping (19), and parsers (17). Uses `node:assert` with zero test-framework dependencies.
 
-Tests use `node:assert` with no test-framework dependency; `tsx` runs them directly.
+### 2. API smoke tests (requires dev server + DB)
 
-### API smoke tests (requires dev server + DB)
+```bash
+pnpm test:api
+```
 
-`pnpm test:api` runs `scripts/api-test.ts`, covering unauthenticated interception, NextAuth login, bank CRUD, two-phase submit, wrong book, logbook, analytics — 7 groups. Requires `pnpm dev` + a ready database first.
+7 test groups covering unauthenticated interception, login, bank CRUD, two-phase submit, wrong book, logbook, analytics.
 
-### E2E tests (Playwright, requires dev server + DB)
+### 3. E2E tests (Playwright, requires dev server + DB)
 
-Four Playwright suites under `tests/e2e/` simulate real user clicks:
+```bash
+pnpm exec playwright test
+```
+
+14 mobile-focused E2E tests (`tests/e2e/`):
 
 | File | Cases | Coverage |
 |---|---|---|
-| `visual-walkthrough.spec.ts` | 15 | Full-site visual walkthrough: landing / login / register / compass / workshop / study / wrongbook / logbook / analytics / account / 404 |
-| `import-flow.spec.ts` | 7 | Bank import: valid Markdown / CSV / Word, empty/binary/unknown-extension rejection, warning prompts |
-| `answering-flow.spec.ts` | 5 | Full answer flow: start / answer all / completion report / replay / mistake redo |
-| `full-flow.spec.ts` | — | End-to-end full-flow chain |
+| `mobile-auth.spec.ts` | 3 | Login, register, forgot-password (mobile shell) |
+| `mobile-navigation.spec.ts` | 7 | All mobile pages render, nav persistence, logout |
+| `mobile-study.spec.ts` | 2 | Answer + rating cycle, empty state |
 
-Run E2E: `pnpm exec playwright test` (configure `playwright.config.ts` baseURL first).
-
-### CI strategy
-
-CI (`.github/workflows/ci.yml`) keeps automation to a minimum — **no** auto-publish / deploy / dependency updates / auto-merge / bot comments:
-
-- `push` / `PR` to `main` → `install → db:generate → typecheck → lint → test:unit → build`
-- `push` to `main` → additionally runs `docker-build` job to verify the Dockerfile builds
-- Dependabot explicitly disabled (`.github/dependabot.yml` `updates: []`); dependencies reviewed manually by the maintainer
-- New commits on the same branch cancel old runs to save CI quota
+Mobile tests run serial (shared login session) to avoid rate-limit. Desktop E2E suites cover site walkthrough, import flows, and answering.
 
 ---
 
@@ -414,50 +421,47 @@ CI (`.github/workflows/ci.yml`) keeps automation to a minimum — **no** auto-pu
 
 | Layer | Choice | Version |
 |---|---|---|
-| Framework | Next.js (App Router) | 16.2.11 |
+| Framework | Next.js (App Router) | 16.2 |
 | Language | TypeScript | 5.9 |
-| Styling | Tailwind CSS | 4.3.3 |
+| Styling | Tailwind CSS | 4.3 |
 | ORM | Prisma | 5.22 |
-| Database | PostgreSQL | 17 |
-| Auth | NextAuth.js | 4.24.15 |
+| Database | PostgreSQL | 16+ |
+| Auth | NextAuth.js (JWT) | 4.24 |
 | Spaced repetition | ts-fsrs | 5.4 |
-| UI primitives | Radix UI | 1.1.21 |
-| Excel parsing | xlsx | 0.18 |
-| Word parsing | mammoth | 1.12 |
+| UI primitives | Radix UI | 1.1 |
+| Parsing (Excel) | xlsx | 0.18 |
+| Parsing (Word) | mammoth | 1.12 |
 | Animation | framer-motion | 12.42 |
 | Icons | Lucide React | 1.25 |
 | Validation | Zod | 4.4 |
-| Runtime | Node.js | ≥22.13 |
+| Testing | Playwright | 1.61 |
 
 ---
 
 ## Design system
 
-The interface borrows nautical and astronomical language — brass rings, abyss backgrounds, ivory text, coral alerts.
+Nautical/astronomical palette — brass rings, abyss depths, ivory text, coral alerts.
 
-**Core palette**
+**Core tokens**
 
 | Token | Hex | Usage |
 |---|---|---|
-| `abyss` | `#0a0f14` | Background depth |
-| `ivory` | `#f0ead6` | Primary text |
-| `brass` | `#c89b3c` | Interactive highlights, navigation |
-| `coral` | `#e0584a` | Destructive actions, due alerts |
+| `abyss` | `#0b1426` | Background depth |
+| `ivory` | `#f5f1e8` | Primary text |
+| `brass` | `#c9a227` | Interactive highlights |
+| `tide` | `#4a7c82` | Secondary, info |
+| `coral` | `#d97757` | Destructive actions |
 
-**Feedback palette** (4-key rating bar + answer reveal)
+**Feedback palette** (4-key rating)
 
-| Token | Hex | Meaning |
+| Token | Hex | Rating |
 |---|---|---|
-| `f-emerald` | `#10b981` | EASY — fluent recall |
-| `f-azure` | `#38bdf8` | GOOD — normal recall |
-| `f-amber` | `#f59e0b` | HARD — barely correct |
-| `f-coral2` | `#ef4444` | AGAIN — total lapse |
+| `f-emerald` | `#10b981` | Easy — fluent recall |
+| `f-azure` | `#38bdf8` | Good — normal recall |
+| `f-amber` | `#f59e0b` | Hard — barely correct |
+| `f-coral2` | `#ef4444` | Again — total lapse |
 
-Two themes:
-- **Deep sea** (default) — abyss background + brass highlights + starfield
-- **Parchment** — warm cream background + dark brown text + brass retained
-
-Fonts use only system-native families — Georgia serif for headings, system-ui for body, ui-monospace for data. No external CDN fonts.
+Two themes: **Deep sea** (abyss + brass + starfield, default) and **Parchment** (warm cream + dark brown text). Fonts are system-native; no CDN dependencies.
 
 ---
 
@@ -465,89 +469,67 @@ Fonts use only system-native families — Georgia serif for headings, system-ui 
 
 | Command | Purpose |
 |---|---|
-| `pnpm dev` | Dev server (port 3000) |
-| `pnpm build` | Production build |
+| `pnpm dev` | Development server (port 3000) |
+| `pnpm build` | Production build (standalone output) |
 | `pnpm start` | Start production server |
 | `pnpm lint` | ESLint |
-| `pnpm typecheck` | TypeScript type check (`tsc --noEmit`) |
+| `pnpm typecheck` | TypeScript check (`tsc --noEmit`) |
 | `pnpm test:unit` | Unit tests (grading + FSRS + parsers, no DB) |
-| `pnpm test:grading` | Run only grading unit tests |
-| `pnpm test:fsrs` | Run only FSRS state-mapping unit tests |
-| `pnpm test:parser` | Run only import-parser unit tests |
-| `pnpm test:api` | API smoke tests (requires `pnpm dev` + DB) |
+| `pnpm test:api` | API smoke tests (requires dev server + DB) |
+| `pnpm exec playwright test` | Playwright E2E tests |
 | `pnpm db:generate` | Generate Prisma client |
-| `pnpm db:migrate` | Run database migrations (dev) |
+| `pnpm db:migrate` | Apply migrations (dev) |
 | `pnpm db:deploy` | Deploy migrations (production) |
-| `pnpm db:seed` | Insert sample banks |
+| `pnpm db:seed` | Insert demo user + FSRS params |
 | `pnpm db:studio` | Launch Prisma Studio GUI |
+| `node scripts/import-official-banks.mjs` | Import all official banks |
 
 ---
 
 ## Roadmap
 
 ### V1 — Quiz foundation (done)
-
-- [x] FSRS-6 scheduling + 4-key rating bar
-- [x] 4 question types with unified grading + partial credit for missed selections
+- [x] FSRS-6 scheduling + 4-key rating
+- [x] 4 question types with unified grading
 - [x] Markdown / Excel / Word import
-- [x] Drift bottle (mistake book) + logbook + analytics
+- [x] Drift bottle + logbook + analytics
 - [x] Deep-sea / parchment dual themes
 
-### V1.1 — Polish (done)
+### V1.1–V1.4 — Polish & hardening (done)
+- [x] Welcome guide, bank fleet cards, completion report upgrade
+- [x] Memory health (retrievability) + resume-after-exit + 365-day heatmap
+- [x] Inline question editing + per-bank FSRS tuning + CSV/Anki export
+- [x] Official banks on-demand + seed slimmed
+- [x] Docker one-click deploy + CI + 49 unit tests
 
-- [x] First-visit welcome guide card (localStorage flag, dismissible) + upgraded bank fleet cards (description / tags / progress bar)
-- [x] Completion report upgraded to learning profile: profile tags + per-type mastery + FSRS rating distribution + weak knowledge TOP 3 + missed-selection hints + actionable advice
-- [x] Seed banks expanded: 12 → 60 questions across FSRS concepts / China geography / TypeScript
-- [x] Wrong-book logic fix: AGAIN rating also enters the bottle (previously only FSRS lapses did; NEW/LEARNING cards answered wrong were missed)
-- [x] Logo embedded in nav brand area, synced to mobile top bar
-
-### V1.2 — Memory health & resume (done)
-
-- [x] **Memory health (Retrievability)**: analytics gains FSRS-6 decay curve visualization — average retention ring + 5-bucket distribution (critical / fragile / fair / stable / fresh) + forgetting alerts (R<70%) + 7-day due forecast bar chart
-- [x] **Resume after exit**: leaving mid-study and returning to `/study` detects a localStorage save and prompts "continue / discard"; saves expire after 7 days, cleared on round completion
-- [x] **Open-source housekeeping**: CI workflow (typecheck + lint + build gates) + Dependabot explicitly disabled + PR template documents maintainer automation policy
-
-### V1.3 — Workshop & analytics enhancements (done)
-
-- [x] **Inline question editing**: 4 types + difficulty + star + enable + soft-delete, with delete confirmation
-- [x] **Per-bank FSRS tuning**: toggle / retention slider / new-cards-per-day / review cap
-- [x] **CSV / Anki export**: CSV import-compatible (with BOM), Anki TSV with `#deck` / `#tags` column headers
-- [x] **Analytics 365-day heatmap**: GitHub-style 4-color scale, month/week labels, tooltip
-
-### V1.4 — Official banks on-demand (done)
-
-- [x] **Built-in official banks**: 4 banks (FSRS / China geography / TypeScript / Python) shipped as Markdown static files with `manifest.json` index
-- [x] **On-demand load UI**: `/workshop` → "Official Banks" dialog → click to load; no database footprint until loaded
-- [x] **Slimmed seed**: no longer auto-inserts banks, only creates the demo user + FSRS params
-
-### V1.4.1 — Production hardening (done)
-
-- [x] **Docker one-click deploy**: multi-stage Dockerfile + docker-compose (app + db + optional caddy) + docker-entrypoint.sh + `/api/health` probe
-- [x] **3 Critical fixes**: FSRS State string/numeric type mismatch breaking scheduling, missing FK cascade on bank deletion, no idempotency on apply
-- [x] **6 High fixes**: analytics N+1 query (365 → 1), wrong-book errorReason persistence, IP trust-chain security, grade double-counting, timeSpentSec clamp, forgot-password status code
-- [x] **49 unit tests**: grading 13 + FSRS state mapping 19 + parsers 17, CI mandatory
-- [x] **CI hardening**: new `test:unit` step + `docker-build` job verifying Dockerfile builds
+### V1.5 — Mobile adaptation & landing page (done)
+- [x] **Device-aware rendering**: 12 routes with independent mobile component trees, DeviceBranch pattern
+- [x] **Mobile Shell**: bottom 4-tab nav, FAB, touch-optimized layout, safe-area adaption
+- [x] **Mobile study**: answer + swipe + rating dock, full study flow
+- [x] **Mobile auth**: login/register/forgot-password/reset-password with mobile shell
+- [x] **Landing page enrichment**: how-it-works, pricing tiers, FAQ accordion, privacy/self-host section
+- [x] **14 mobile E2E tests** (Playwright, serial execution)
+- [x] 4 official banks (80 questions fully imported)
+- [x] SEO: env-driven metadataBase, sitemap, robots.txt
 
 ### V2 — AI agent
-
-- [ ] Upload materials → agent auto-generates question banks
+- [ ] Upload materials → auto-generate questions
 - [ ] Auto-tagging of knowledge points
-- [ ] Difficulty auto-calibration from answer data
-- [ ] Personal FSRS weight optimizer based on review logs
+- [ ] Difficulty calibration from answer data
+- [ ] Personal FSRS weight optimizer
 
 ### V3 — Multi-platform
-
 - [ ] WeChat mini-program (shared API + design tokens)
-- [ ] Mobile PWA tuning
 - [ ] Public bank sharing (read-only links)
+- [ ] Monero / Stripe subscription (pricing UI is in place)
 
 ---
 
 ## Contributing
 
-Issues and PRs welcome. Before opening a PR, read [CONTRIBUTING.md](CONTRIBUTING.md) — it covers code style, commit conventions, and the quiz-logic routing rules (all grading goes through `src/lib/quiz/grading.ts`, all FSRS scheduling through `src/lib/fsrs.ts`; don't call `ts-fsrs` directly from route handlers).
+Issues and PRs welcome at [gitcode.com/badhope/compass](https://gitcode.com/badhope/compass). See [CONTRIBUTING.md](CONTRIBUTING.md) for code style, commit conventions, and quiz-logic routing rules.
 
-See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for conduct. For security issues, see [SECURITY.md](SECURITY.md) — do not open a public issue; follow the private disclosure process.
+Refer to [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for conduct and [SECURITY.md](SECURITY.md) for private disclosure.
 
 ---
 

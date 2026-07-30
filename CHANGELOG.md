@@ -2,6 +2,28 @@
 
 All notable changes to Compass are documented in this file. This project adheres to [Semantic Versioning](https://semver.org/) and [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.5.0] - 2026-07-31
+
+### Added
+
+- **Device-aware mobile adaptation**: 12 routes with DeviceBranch pattern (independent mobile component trees)
+- **Mobile Shell**: bottom 4-tab navigation + FAB + touch-optimized study flow
+- **Mobile auth**: login/register/forgot/reset with mobile shell
+- **14 Playwright E2E tests** for mobile (auth, navigation, study)
+- **Landing page enrichment**: how-it-works, pricing tiers, FAQ accordion, privacy/self-host section
+- **4 official banks** (FSRS/Geography/TypeScript/Python) with import script
+- **SEO fixes**: metadataBase/canonical env-driven, sitemap.ts, robots.txt
+- **DEPLOYMENT.md** with 3 deployment options (Vercel+Neon/Railway/Docker)
+- **Dockerfile + docker-compose.yml + Caddyfile + .env.example**
+- **Duplicate bank import protection** (idempotent scripts)
+
+### Changed
+
+- Version 1.4.3 → 1.5.0
+- README.md fully rewritten with new architecture diagrams, mobile adaptation docs, deployment info, and landing page sections
+
+---
+
 ## V1.4.3 — 2026-07-22
 
 ### Added — README 多语言化与仓库可检索性

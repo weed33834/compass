@@ -1,3 +1,5 @@
+> **DEPRECATED**: See [DEPLOYMENT.md](../DEPLOYMENT.md) for the official deployment guide covering Docker, Vercel+Neon, and Railway/Render options.
+
 # Docker Compose 快速部署指南
 
 ## 前置条件
