@@ -8,7 +8,7 @@ All participants must adhere to the [Code of Conduct](CODE_OF_CONDUCT.md). Haras
 
 ## Reporting Bugs
 
-Before opening an issue, search [existing issues](https://gitcode.com/badhope/compass/issues) to avoid duplicates. When filing a bug report, include:
+Before opening an issue, search [existing issues](https://github.com/weed33834/compass/issues) to avoid duplicates. When filing a bug report, include:
 
 - Steps to reproduce the issue
 - Expected versus actual behavior
@@ -32,7 +32,7 @@ For large features, consider opening a discussion before writing code. The maint
 ### Setup
 
 ```bash
-git clone https://gitcode.com/badhope/compass.git
+git clone https://github.com/weed33834/compass.git
 cd compass
 pnpm install
 cp .env.example .env

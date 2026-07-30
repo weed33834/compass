@@ -14,7 +14,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-c89b3c.svg?style=flat-square" /></a>
   <a href="#"><img alt="CI" src="https://img.shields.io/badge/CI-passing-0a0f14?style=flat-square" /></a>
-  <a href="https://gitcode.com/badhope/compass/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.5.0-c89b3c?style=flat-square" /></a>
+  <a href="https://github.com/weed33834/compass/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.5.0-c89b3c?style=flat-square" /></a>
   <img alt="Node.js" src="https://img.shields.io/badge/node-%E2%89%A522-0a0f14?style=flat-square&logo=node.js&logoColor=c89b3c" />
   <img alt="pnpm" src="https://img.shields.io/badge/pnpm-%E2%89%A511-c89b3c?style=flat-square&logo=pnpm&logoColor=0a0f14" />
   <img alt="PostgreSQL" src="https://img.shields.io/badge/postgresql-16+-0a0f14?style=flat-square&logo=postgresql&logoColor=c89b3c" />
@@ -50,7 +50,8 @@
 
 航海主题命名——刷题罗盘（指引方向）、错题漂流瓶（错题本）、航海日志（答题记录）、航行计划（学习计划）——自然映射到应用功能。
 
-> **仓库**：<https://gitcode.com/badhope/compass>
+> **仓库（主）**：<https://github.com/weed33834/compass>
+> **镜像**：<https://gitcode.com/badhope/compass>
 
 ---
 
@@ -158,7 +159,7 @@ sequenceDiagram
 ### 本地开发
 
 ```bash
-git clone https://gitcode.com/badhope/compass.git
+git clone https://github.com/weed33834/compass.git
 cd compass
 pnpm install
 cp .env.example .env
@@ -527,7 +528,7 @@ pnpm exec playwright test
 
 ## 贡献
 
-欢迎提交 Issue 和 PR，请前往 [gitcode.com/badhope/compass](https://gitcode.com/badhope/compass)。详见 [CONTRIBUTING.md](CONTRIBUTING.md) 了解代码风格、提交规范和答题逻辑路由规则。
+欢迎提交 Issue 和 PR，请前往 [github.com/weed33834/compass](https://github.com/weed33834/compass)。详见 [CONTRIBUTING.md](CONTRIBUTING.md) 了解代码风格、提交规范和答题逻辑路由规则。
 
 行为规范见 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)，安全问题见 [SECURITY.md](SECURITY.md) 中的非公开披露流程。
 

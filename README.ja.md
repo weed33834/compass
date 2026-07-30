@@ -14,7 +14,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-c89b3c.svg?style=flat-square" /></a>
   <a href="#"><img alt="CI" src="https://img.shields.io/badge/CI-passing-0a0f14?style=flat-square" /></a>
-  <a href="https://gitcode.com/badhope/compass/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.5.0-c89b3c?style=flat-square" /></a>
+  <a href="https://github.com/weed33834/compass/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.5.0-c89b3c?style=flat-square" /></a>
   <img alt="Node.js" src="https://img.shields.io/badge/node-%E2%89%A522-0a0f14?style=flat-square&logo=node.js&logoColor=c89b3c" />
   <img alt="pnpm" src="https://img.shields.io/badge/pnpm-%E2%89%A511-c89b3c?style=flat-square&logo=pnpm&logoColor=0a0f14" />
   <img alt="PostgreSQL" src="https://img.shields.io/badge/postgresql-16+-0a0f14?style=flat-square&logo=postgresql&logoColor=c89b3c" />
@@ -50,7 +50,8 @@
 
 航海をテーマにした命名——学習羅針盤（導き）、誤答漂流瓶（間違い帳）、航海日誌（回答履歴）、航海計画（学習計画）——はアプリの機能に自然に対応しています。
 
-> **リポジトリ**：<https://gitcode.com/badhope/compass>
+> **リポジトリ（プライマリ）**：<https://github.com/weed33834/compass>
+> **ミラー**：<https://gitcode.com/badhope/compass>
 
 ---
 
@@ -158,7 +159,7 @@ sequenceDiagram
 ### ローカル開発
 
 ```bash
-git clone https://gitcode.com/badhope/compass.git
+git clone https://github.com/weed33834/compass.git
 cd compass
 pnpm install
 cp .env.example .env
@@ -527,7 +528,7 @@ pnpm exec playwright test
 
 ## コントリビュート
 
-Issue と PR は [gitcode.com/badhope/compass](https://gitcode.com/badhope/compass) で歓迎します。コードスタイル、コミット規約、クイズロジックルーティングルールについては [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+Issue と PR は [github.com/weed33834/compass](https://github.com/weed33834/compass) で歓迎します。コードスタイル、コミット規約、クイズロジックルーティングルールについては [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
 行動規範は [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) を、セキュリティ問題の非公開報告は [SECURITY.md](SECURITY.md) を参照してください。
 

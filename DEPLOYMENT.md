@@ -69,7 +69,7 @@ Compass 是一个标准 **Next.js 16（App Router）+ PostgreSQL + Prisma** 应�
 
 ### 方式一：Blueprint 一键（推荐）
 
-1. Render 控制台 → **New** → **Blueprint** → 连接 GitCode 仓库（`badhope/compass`）。
+1. Render 控制台 → **New** → **Blueprint** → 连接 GitHub 仓库（`weed33834/compass`）。（GitCode `badhope/compass` 为镜像仓库，无需在此连接。）
 2. Render 自动读取 `render.yaml`：创建 `compass-db`（PostgreSQL 16）+ `compass`（Web Service）。
 3. 点 **Apply** → 自动执行：安装依赖 → `prisma generate` → `next build` → `prisma migrate deploy` → 启动。
 4. 部署完成后拿到域名（默认 `https://compass.onrender.com`）。**回到控制台补两项环境变量**：

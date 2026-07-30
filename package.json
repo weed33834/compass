@@ -1,17 +1,17 @@
 {
   "name": "compass",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "private": false,
   "description": "Compass · A self-hosted spaced-repetition quiz tool powered by the FSRS-6 algorithm. Import Markdown/Excel/Word banks, answer in a keyboard-driven cockpit, let the algorithm schedule reviews. A modern self-hosted Anki alternative.",
   "license": "MIT",
   "author": "Compass Contributors",
-  "homepage": "https://gitcode.com/badhope/compass#readme",
+  "homepage": "https://github.com/weed33834/compass#readme",
   "repository": {
     "type": "git",
-    "url": "https://gitcode.com/badhope/compass.git"
+    "url": "https://github.com/weed33834/compass.git"
   },
   "bugs": {
-    "url": "https://gitcode.com/badhope/compass/issues"
+    "url": "https://github.com/weed33834/compass/issues"
   },
   "keywords": [
     "compass",

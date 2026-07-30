@@ -15,7 +15,7 @@
 
 ```bash
 # 1. 克隆项目
-git clone gitcode.com/badhope/compass.git
+git clone https://github.com/weed33834/compass.git
 cd compass
 
 # 2. 配置环境变量

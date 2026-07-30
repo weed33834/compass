@@ -16,7 +16,7 @@ const spec = {
   openapi: "3.1.0",
   info: {
     title: "Compass API",
-    version: "1.4.3",
+    version: "1.5.0",
     description:
       "Compass · 刷题罗盘 — 基于 FSRS-6 算法的自托管间隔重复刷题工具。RESTful API，认证方式为 NextAuth Session Cookie。",
     contact: { name: "Compass Contributors" },

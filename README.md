@@ -14,7 +14,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-c89b3c.svg?style=flat-square" /></a>
   <a href="#"><img alt="CI" src="https://img.shields.io/badge/CI-passing-0a0f14?style=flat-square" /></a>
-  <a href="https://gitcode.com/badhope/compass/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.5.0-c89b3c?style=flat-square" /></a>
+  <a href="https://github.com/weed33834/compass/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.5.0-c89b3c?style=flat-square" /></a>
   <img alt="Node.js" src="https://img.shields.io/badge/node-%E2%89%A522-0a0f14?style=flat-square&logo=node.js&logoColor=c89b3c" />
   <img alt="pnpm" src="https://img.shields.io/badge/pnpm-%E2%89%A511-c89b3c?style=flat-square&logo=pnpm&logoColor=0a0f14" />
   <img alt="PostgreSQL" src="https://img.shields.io/badge/postgresql-16+-0a0f14?style=flat-square&logo=postgresql&logoColor=c89b3c" />
@@ -50,7 +50,8 @@ Compass ("刷题罗盘" — quiz compass) is a self-hosted, open-source alternat
 
 The nautical naming — Compass (guidance), Drift Bottle (wrong book), Logbook (answer history), Voyage (study plan) — maps naturally onto the app's functions.
 
-> **Repository**: [https://gitcode.com/badhope/compass](https://gitcode.com/badhope/compass)
+> **Repository (primary)**: [https://github.com/weed33834/compass](https://github.com/weed33834/compass)
+> **Mirror**: [https://gitcode.com/badhope/compass](https://gitcode.com/badhope/compass)
 
 ---
 
@@ -158,7 +159,7 @@ The `grade` phase auto-maps a default rating from `partialScore` (all correct �
 ### Local development
 
 ```bash
-git clone https://gitcode.com/badhope/compass.git
+git clone https://github.com/weed33834/compass.git
 cd compass
 pnpm install
 cp .env.example .env
@@ -527,7 +528,7 @@ Two themes: **Deep sea** (abyss + brass + starfield, default) and **Parchment** 
 
 ## Contributing
 
-Issues and PRs welcome at [gitcode.com/badhope/compass](https://gitcode.com/badhope/compass). See [CONTRIBUTING.md](CONTRIBUTING.md) for code style, commit conventions, and quiz-logic routing rules.
+Issues and PRs welcome at [github.com/weed33834/compass](https://github.com/weed33834/compass). See [CONTRIBUTING.md](CONTRIBUTING.md) for code style, commit conventions, and quiz-logic routing rules.
 
 Refer to [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for conduct and [SECURITY.md](SECURITY.md) for private disclosure.
 
