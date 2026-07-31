@@ -534,6 +534,18 @@ Refer to [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for conduct and [SECURITY.md](
 
 ---
 
+## Mirrors / 镜像
+
+This repository is primarily hosted on **GitHub** and mirrored to GitCode and Gitee for accessibility.
+
+| Platform | URL |
+|----------|-----|
+| **GitHub** (primary) | https://github.com/weed33834/compass |
+| GitCode (mirror) | https://gitcode.com/badhope/compass |
+| Gitee (mirror) | https://gitee.com/badhope/compass |
+
+> Content is synchronized manually across platforms. GitHub is the canonical source.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
